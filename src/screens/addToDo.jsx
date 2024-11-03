@@ -156,7 +156,7 @@ const estilos = StyleSheet.create({
     marginBottom: 15,
   },
   icone: {
-    AmarginRight: 10,
+    marginRight: 10,
   },
 });
 

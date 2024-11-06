@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     width: '100%',
     backgroundColor: '#51c1f5',
-    borderRadius: 10,
+    borderRadius: 101,
   },
   todoList: {
     paddingHorizontal: 20,

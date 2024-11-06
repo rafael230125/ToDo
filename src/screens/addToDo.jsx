@@ -6,14 +6,17 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../services/firebaseConfig';
 import { collection, addDoc } from 'firebase/firestore';
+import { MaterialIcons,FontAwesome } from '@expo/vector-icons'; 
+import * as SQLite from 'expo-sqlite';
+import { ToastAndroid } from 'react-native';
 
 const TelaAdicionarTarefa = () => {
   const [dataInicio, setDataInicio] = useState(new Date());
   const [dataFinal, setDataFinal] = useState(new Date());
   const [mostrarDataInicio, setMostrarDataInicio] = useState(false);
   const [mostrarDataFinal, setMostrarDataFinal] = useState(false);
-  const [textoDataInicio, setTextoDataInicio] = useState('');
-  const [textoDataFinal, setTextoDataFinal] = useState('');
+  const [textoDataInicio, setTextoDataInicio] = useState(dataInicio.toLocaleDateString('pt-BR'));
+  const [textoDataFinal, setTextoDataFinal] = useState(dataFinal.toLocaleDateString('pt-BR'));
   const [prioridade, setPrioridade] = useState("Baixa");
   const [nomeTarefa, setNomeTarefa] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -21,16 +24,16 @@ const TelaAdicionarTarefa = () => {
 
   const aoSelecionarDataInicio = (event, selectedDate) => {
     const currentDate = selectedDate || dataInicio;
-    setMostrarDataInicio(Platform.OS === 'ios');
+    setMostrarDataInicio(false);
     setDataInicio(currentDate);
-    setTextoDataInicio(currentDate.toLocaleDateString());
+    setTextoDataInicio(currentDate.toLocaleDateString('pt-BR'));
   };
 
   const aoSelecionarDataFinal = (event, selectedDate) => {
     const currentDate = selectedDate || dataFinal;
-    setMostrarDataFinal(Platform.OS === 'ios');
+    setMostrarDataFinal(false);
     setDataFinal(currentDate);
-    setTextoDataFinal(currentDate.toLocaleDateString());
+    setTextoDataFinal(currentDate.toLocaleDateString('pt-BR'));
   };
 
   const mostrarSelecionadorDataInicio = () => setMostrarDataInicio(true);
@@ -46,7 +49,8 @@ const TelaAdicionarTarefa = () => {
           dataInicio: dataInicio,
           dataFinal: dataFinal,
         });
-        console.log('Tarefa salva com sucesso!');
+        ToastAndroid.show('Tarefa salva com sucesso!', ToastAndroid.SHORT);
+        // console.log('Tarefa salva com sucesso!');
         navegacao.goBack();
       } catch (error) {
         console.error('Erro ao salvar a tarefa: ', error);
@@ -54,6 +58,22 @@ const TelaAdicionarTarefa = () => {
     } else {
       alert('Por favor, insira um nome para a tarefa.');
     }
+  };
+
+  const addNova = async () => {
+    const db = await SQLite.openDatabaseAsync('todo');
+    try {
+      await db.runAsync('INSERT INTO tarefas (nome, descricao, dataInical, dataFinal, prioridade) VALUES (?, ?, ?, ?, ?)', 
+        nomeTarefa, descricao, textoDataInicio, textoDataFinal, prioridade);
+
+      ToastAndroid.show('Tarefa salva com sucesso!', ToastAndroid.SHORT);
+      navegacao.goBack();
+    } catch (error) {
+      ToastAndroid.show('Erro:',error, ToastAndroid.SHORT);
+      
+    };
+
+    
   };
 
   return (
@@ -118,7 +138,14 @@ const TelaAdicionarTarefa = () => {
         />
       )}
 
-      <Button title="Salvar" onPress={salvarTarefa} />
+      {/* <Button title="Salvar" onPress={addNova} /> */}
+      <View style={estilos.bottomNav}>
+        <TouchableOpacity 
+          style={[estilos.navButton, estilos.navButtonCenter]} 
+        >
+          <MaterialIcons name="add" size={28} onPress={addNova} color="white" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -127,7 +154,7 @@ const estilos = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fdfdfd',
   },
   label: {
     fontSize: 16,
@@ -138,7 +165,7 @@ const estilos = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     padding: 10,
-    borderRadius: 5,
+    borderRadius: 10,
     fontSize: 16,
     backgroundColor: '#fff',
     marginBottom: 15,
@@ -146,7 +173,7 @@ const estilos = StyleSheet.create({
   picker: {
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 5,
+    borderRadius: 10,
     backgroundColor: '#fff',
     marginBottom: 15,
   },
@@ -154,9 +181,36 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
+    width: 330,
+    height: 60
   },
   icone: {
     marginRight: 10,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 4,
+    borderRadius: 30,
+    backgroundColor: '#51c1f5',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    marginTop: 20
+  },
+  navButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 10,
+    height: 10,
+    backgroundColor: '#51c1f5',
+    borderRadius: 25,
+  },
+  navButtonCenter: {
+    backgroundColor: '#FFC107',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginTop: 0,
   },
 });
 

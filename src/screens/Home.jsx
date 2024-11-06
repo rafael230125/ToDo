@@ -1,14 +1,70 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { MaterialIcons, FontAwesome } from '@expo/vector-icons'; 
+import { MaterialIcons,FontAwesome } from '@expo/vector-icons'; 
 import { useNavigation } from '@react-navigation/native';
+import * as SQLite from 'expo-sqlite';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
-  const [todos, setTodos] = useState([
-    { id: '1', task: 'Task 1', time: '29 hrs', icon: 'facebook' },
-    // Outras tasks...
-  ]);
+  const [tarefas, setTarefas] = useState([]);
+  const [selectedTaskId, setSelectedTaskId] = useState(null); // Novo estado para armazenar a tarefa selecionada
+
+  useEffect(() => {
+    async function buscarTarefas() {
+      const db = await SQLite.openDatabaseAsync('todo');  
+      // await db.execAsync(`
+      //   PRAGMA journal_mode = WAL;
+      //   CREATE TABLE IF NOT EXISTS tarefas (id INTEGER PRIMARY KEY NOT NULL, nome TEXT, descricao TEXT,dataInical DATE,dataFinal DATE,prioridade TEXT);
+      //   INSERT INTO tarefas (nome, descricao,dataInical,dataFinal,prioridade) VALUES ('test1', '123','05/11/2024','05/11/2024','Baixa');
+      //   `);
+
+      const allRows = await db.getAllAsync('SELECT * FROM tarefas');
+      setTarefas(allRows); 
+    }
+
+    buscarTarefas();
+  }, []);
+
+  // Função para selecionar/deselecionar tarefa
+  const selecionarTarefa = (id) => {
+    setSelectedTaskId(id === selectedTaskId ? null : id);
+  };
+
+  async function atualizarLista() {
+    const db = await SQLite.openDatabaseAsync('todo');  
+       const allRows = await db.getAllAsync('SELECT * FROM tarefas');
+    setTarefas(allRows); 
+  }
+
+  const dropaTabela = async () => {
+    const db = await SQLite.openDatabaseAsync('todo');
+    await db.runAsync('DROP TABLE tarefas');
+  };
+
+  // Função para excluir a tarefa selecionada
+  const excluirTarefa = async () => {
+    if (selectedTaskId !== null) {
+      const db = await SQLite.openDatabaseAsync('todo');
+      await db.execAsync(`DELETE FROM tarefas WHERE id = ?`, [selectedTaskId]);
+
+      // Atualize a lista de tarefas
+      setTarefas(tarefas.filter(task => task.id !== selectedTaskId));
+      setSelectedTaskId(null);
+    }
+  };
+
+  const obterIconePrioridade = (prioridade) => {
+    switch (prioridade) {
+      case 'Baixa':
+        return <FontAwesome name="exclamation" size={24} color="#4CAF50" />; // Verde
+      case 'Média':
+        return <FontAwesome name="exclamation" size={24} color="#FF9800" />; // Laranja
+      case 'Alta':
+        return <FontAwesome name="exclamation" size={24} color="#F44336" />; // Vermelho
+      default:
+        return <FontAwesome name="question-circle" size={24} color="#757575" />; // Cinza para casos indefinidos
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -17,26 +73,33 @@ const HomeScreen = () => {
       </View>
       
       <FlatList
-        data={todos}
+        data={tarefas}
         renderItem={({ item }) => (
-          <View style={styles.todoItem}>
-            <FontAwesome name={item.icon} size={24} color="#4CAF50" />
+          <TouchableOpacity 
+            style={[
+              styles.todoItem, 
+              item.id === selectedTaskId && styles.selectedItem
+            ]}
+            onPress={() => selecionarTarefa(item.id)}
+          >
+            {obterIconePrioridade(item.prioridade)}
             <View style={styles.todoTextContainer}>
-              <Text style={styles.todoText}>{item.task}</Text>
-              <Text style={styles.todoTime}>{item.time}</Text>
+              <Text style={styles.todoText}>{item.nome}</Text>
+              <Text style={styles.todoDesc}>{item.descricao}</Text>
+              <Text style={styles.todoTime}>{item.dataFinal}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.todoList}
       />
 
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navButton}>
-          <MaterialIcons name="home" size={24} color="white" />
+          <MaterialIcons name="home" size={24} onPress={atualizarLista} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton}>
-          <MaterialIcons name="delete" size={24} color="white" />
+        <TouchableOpacity style={styles.navButton} onPress={excluirTarefa}>
+          <MaterialIcons name="delete" size={24} onPress={excluirTarefa}  color="white" />
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.navButton, styles.navButtonCenter]} 
@@ -92,9 +155,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  selectedItem: {
+    backgroundColor: '#757f88', // Cor diferente para item selecionado
+  },
   todoTextContainer: {
     marginLeft: 15,
-    // backgroundColor: '#757575',
   },
   todoText: {
     fontSize: 16,
@@ -105,13 +170,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#757575',
   },
+  todoDesc: {
+    fontSize: 16,
+    color: '#757575',
+  },
   bottomNav: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 15,
+    padding: 4,
     borderRadius: 30,
     backgroundColor: '#51c1f5',
     marginHorizontal: 20,
+    marginTop: 20,
     marginBottom: 20,
   },
   navButton: {
@@ -121,13 +191,14 @@ const styles = StyleSheet.create({
     height: 50,
     backgroundColor: '#51c1f5',
     borderRadius: 25,
+    marginTop: 10
   },
   navButtonCenter: {
     backgroundColor: '#FFC107',
     width: 70,
     height: 70,
     borderRadius: 35,
-    marginTop: -20,
+    marginTop: 0,
   },
 });
 

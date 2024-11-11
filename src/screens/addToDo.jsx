@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Platform, Text, Button } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, TextInput, StyleSheet, TouchableOpacity, Platform, Text, Button, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation,useRoute  } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Picker } from '@react-native-picker/picker';
-import { db } from '../services/firebaseConfig';
 import { collection, addDoc } from 'firebase/firestore';
 import { MaterialIcons,FontAwesome } from '@expo/vector-icons'; 
-import * as SQLite from 'expo-sqlite';
 import { ToastAndroid } from 'react-native';
+import openDB from "../database/db" ;
 
-const TelaAdicionarTarefa = () => {
+const AddTaskScreen = () => {
+  const db  =  openDB();
   const [dataInicio, setDataInicio] = useState(new Date());
   const [dataFinal, setDataFinal] = useState(new Date());
   const [mostrarDataInicio, setMostrarDataInicio] = useState(false);
@@ -20,7 +20,29 @@ const TelaAdicionarTarefa = () => {
   const [prioridade, setPrioridade] = useState("Baixa");
   const [nomeTarefa, setNomeTarefa] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [modoEdicao, setModoEdicao] = useState(false);
   const navegacao = useNavigation();
+  const route = useRoute();
+  const { id } = route.params || {}; 
+  const { todo } = route.params || {};
+  
+  useEffect(() => {
+    if (todo) {
+      carregarTarefa();
+    }
+  }, [todo]);
+
+  const carregarTarefa = async () => {
+    if (todo) {
+      setNomeTarefa(todo.nome);
+      setDescricao(todo.descricao);
+      setPrioridade(todo.prioridade);
+      setTextoDataInicio(todo.dataInicial);
+      setTextoDataFinal((todo.dataFinal));
+      setModoEdicao(true);
+    }
+};
+
 
   const aoSelecionarDataInicio = (event, selectedDate) => {
     const currentDate = selectedDate || dataInicio;
@@ -39,43 +61,67 @@ const TelaAdicionarTarefa = () => {
   const mostrarSelecionadorDataInicio = () => setMostrarDataInicio(true);
   const mostrarSelecionadorDataFinal = () => setMostrarDataFinal(true);
 
-  const salvarTarefa = async () => {
-    if (nomeTarefa.trim()) {
-      try {
-        await addDoc(collection(db, 'tarefas'), {
-          nome: nomeTarefa,
-          descricao: descricao,
-          prioridade: prioridade,
-          dataInicio: dataInicio,
-          dataFinal: dataFinal,
-        });
-        ToastAndroid.show('Tarefa salva com sucesso!', ToastAndroid.SHORT);
-        // console.log('Tarefa salva com sucesso!');
-        navegacao.goBack();
-      } catch (error) {
-        console.error('Erro ao salvar a tarefa: ', error);
-      }
-    } else {
-      alert('Por favor, insira um nome para a tarefa.');
-    }
+  // const salvarTarefa = async () => {
+  //   if (nomeTarefa.trim()) {
+  //     try {
+  //       await addDoc(collection(db, 'tarefas'), {
+  //         nome: nomeTarefa,
+  //         descricao: descricao,
+  //         prioridade: prioridade,
+  //         dataInicio: dataInicio,
+  //         dataFinal: dataFinal,
+  //       });
+  //       ToastAndroid.show('Tarefa salva com sucesso!', ToastAndroid.SHORT);
+  //       // console.log('Tarefa salva com sucesso!');
+  //       navegacao.goBack();
+  //     } catch (error) {
+  //       console.error('Erro ao salvar a tarefa: ', error);
+  //     }
+  //   } else {
+  //     alert('Por favor, insira um nome para a tarefa.');
+  //   }
+  // };
+
+
+  const BuscarTarefa = async () => {
+    const statement = await db.prepareAsync('SELECT * FROM tarefas WHERE id = ?');
+    const result = await statement.executeAsync([todo.id]);
+    const firstRow = await result.getFirstAsync(); 
+    console.log(firstRow);
   };
 
+
   const addNova = async () => {
-    const db = await SQLite.openDatabaseAsync('todo');
+    const statement = await db.prepareAsync(
+      'INSERT INTO tarefas (nome, descricao, dataInicial, dataFinal, prioridade) VALUES ($nome,$descricao,$dataInicial,$dataFinal,$prioridade)'
+    );
+    
     try {
-      await db.runAsync('INSERT INTO tarefas (nome, descricao, dataInical, dataFinal, prioridade) VALUES (?, ?, ?, ?, ?)', 
-        nomeTarefa, descricao, textoDataInicio, textoDataFinal, prioridade);
+      let result = await statement.executeAsync({$nome:nomeTarefa ,$descricao: descricao,$dataInicial: textoDataInicio,$dataFinal: textoDataFinal,$prioridade: prioridade});
 
       ToastAndroid.show('Tarefa salva com sucesso!', ToastAndroid.SHORT);
       navegacao.goBack();
-    } catch (error) {
-      ToastAndroid.show('Erro:',error, ToastAndroid.SHORT);
+    }finally {
+      await statement.finalizeAsync();
+    // }catch (error) {
+    //   ToastAndroid.show('Erro:',error, ToastAndroid.SHORT);
       
-    };
-
-    
+    }
   };
 
+  const atualizarTarefa = async () => {
+     try {
+      await db.runAsync("UPDATE tarefas SET nome = ?, descricao = ?, dataInicial = ?, dataFinal = ?, prioridade = ? WHERE id = ?",
+        [nomeTarefa, descricao, textoDataInicio, textoDataFinal, prioridade, todo.id]); 
+
+      ToastAndroid.show('Tarefa editada com sucesso!', ToastAndroid.SHORT);
+      navegacao.goBack();
+    } catch (error) {
+      console.log('Erro:', error);
+      ToastAndroid.show(`Erro: ${error}`, ToastAndroid.SHORT);
+    }
+  };
+  
   return (
     <View style={estilos.container}>
       <Text style={estilos.label}>Nome</Text>
@@ -142,8 +188,9 @@ const TelaAdicionarTarefa = () => {
       <View style={estilos.bottomNav}>
         <TouchableOpacity 
           style={[estilos.navButton, estilos.navButtonCenter]} 
+          onPress={modoEdicao ? atualizarTarefa : addNova} 
         >
-          <MaterialIcons name="add" size={28} onPress={addNova} color="white" />
+          <MaterialIcons name={modoEdicao ? "edit" : "add"} size={28} color="white" />
         </TouchableOpacity>
       </View>
     </View>
@@ -214,4 +261,4 @@ const estilos = StyleSheet.create({
   },
 });
 
-export default TelaAdicionarTarefa;
+export default AddTaskScreen;

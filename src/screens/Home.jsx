@@ -1,55 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { MaterialIcons,FontAwesome } from '@expo/vector-icons'; 
+import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import * as SQLite from 'expo-sqlite';
+import { useFocusEffect } from '@react-navigation/native';
+import openDB from "../database/db" ;
 
-const HomeScreen = () => {
+
+const TelaPrincipal = () => {
+  const db  =  openDB();
   const navigation = useNavigation();
   const [tarefas, setTarefas] = useState([]);
-  const [selectedTaskId, setSelectedTaskId] = useState(null); // Novo estado para armazenar a tarefa selecionada
+  const [idTarefaSelecionada, setIdTarefaSelecionada] = useState(null); // Estado para armazenar a tarefa selecionada
 
-  useEffect(() => {
-    async function buscarTarefas() {
-      const db = await SQLite.openDatabaseAsync('todo');  
-      // await db.execAsync(`
-      //   PRAGMA journal_mode = WAL;
-      //   CREATE TABLE IF NOT EXISTS tarefas (id INTEGER PRIMARY KEY NOT NULL, nome TEXT, descricao TEXT,dataInical DATE,dataFinal DATE,prioridade TEXT);
-      //   INSERT INTO tarefas (nome, descricao,dataInical,dataFinal,prioridade) VALUES ('test1', '123','05/11/2024','05/11/2024','Baixa');
-      //   `);
+  useFocusEffect(
+    React.useCallback(() => {
+      async function buscarTarefas() {
+        const todasAsLinhas = await db.getAllAsync('SELECT * FROM tarefas');
+        setTarefas(todasAsLinhas);
+      }
+  
+      buscarTarefas();
+    }, [])
+  );
 
-      const allRows = await db.getAllAsync('SELECT * FROM tarefas');
-      setTarefas(allRows); 
-    }
-
-    buscarTarefas();
-  }, []);
 
   // Função para selecionar/deselecionar tarefa
   const selecionarTarefa = (id) => {
-    setSelectedTaskId(id === selectedTaskId ? null : id);
+    setIdTarefaSelecionada(id === idTarefaSelecionada ? null : id);
   };
 
   async function atualizarLista() {
-    const db = await SQLite.openDatabaseAsync('todo');  
-       const allRows = await db.getAllAsync('SELECT * FROM tarefas');
-    setTarefas(allRows); 
+    const todasAsLinhas = await db.getAllAsync('SELECT * FROM tarefas');
+    setTarefas(todasAsLinhas);
   }
 
-  const dropaTabela = async () => {
-    const db = await SQLite.openDatabaseAsync('todo');
+  const excluirTabela = async () => {
     await db.runAsync('DROP TABLE tarefas');
+  };
+
+  const BuscarTarefa = async () => {
+    const statement = await db.prepareAsync('SELECT * FROM tarefas WHERE id = ?');
+    const result = await statement.executeAsync([idTarefaSelecionada]);
+    const firstRow = await result.getFirstAsync(); 
+    console.log(firstRow);
   };
 
   // Função para excluir a tarefa selecionada
   const excluirTarefa = async () => {
-    if (selectedTaskId !== null) {
-      const db = await SQLite.openDatabaseAsync('todo');
-      await db.execAsync(`DELETE FROM tarefas WHERE id = ?`, [selectedTaskId]);
+    if (idTarefaSelecionada !== null) {
+      await db.execAsync(`DELETE FROM tarefas WHERE id = ?`, [idTarefaSelecionada]);
 
-      // Atualize a lista de tarefas
-      setTarefas(tarefas.filter(task => task.id !== selectedTaskId));
-      setSelectedTaskId(null);
+      setTarefas(tarefas.filter(tarefa => tarefa.id !== idTarefaSelecionada));
+      setIdTarefaSelecionada(null);
     }
   };
 
@@ -67,58 +69,66 @@ const HomeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>TO-DO</Text>
+    <View style={estilos.container}>
+      <View style={estilos.header}>
+        <Text style={estilos.headerTitle}>TO-DO</Text>
       </View>
-      
+
       <FlatList
         data={tarefas}
         renderItem={({ item }) => (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.todoItem, 
-              item.id === selectedTaskId && styles.selectedItem
+              estilos.todoItem,
+              item.id === idTarefaSelecionada && estilos.selectedItem,
             ]}
             onPress={() => selecionarTarefa(item.id)}
           >
             {obterIconePrioridade(item.prioridade)}
-            <View style={styles.todoTextContainer}>
-              <Text style={styles.todoText}>{item.nome}</Text>
-              <Text style={styles.todoDesc}>{item.descricao}</Text>
-              <Text style={styles.todoTime}>{item.dataFinal}</Text>
+            <View style={estilos.todoTextContainer}>
+              <Text style={estilos.todoText}>{item.nome}</Text>
+              <Text style={estilos.todoDesc}>{item.descricao}</Text>
+              <Text style={estilos.todoTime}>{item.dataFinal}</Text>
             </View>
           </TouchableOpacity>
         )}
         keyExtractor={item => item.id.toString()}
-        contentContainerStyle={styles.todoList}
+        contentContainerStyle={estilos.todoList}
       />
 
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navButton}>
+      <View style={estilos.bottomNav}>
+        <TouchableOpacity style={estilos.navButton}>
           <MaterialIcons name="home" size={24} onPress={atualizarLista} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton} onPress={excluirTarefa}>
-          <MaterialIcons name="delete" size={24} onPress={excluirTarefa}  color="white" />
+        <TouchableOpacity
+          style={[estilos.navButton, { opacity: idTarefaSelecionada ? 1 : 0.5 }]}
+          onPress={excluirTarefa}
+          disabled={!idTarefaSelecionada}
+        >
+          <MaterialIcons name="delete" size={24} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.navButton, styles.navButtonCenter]} 
+        <TouchableOpacity
+          style={[estilos.navButton, estilos.navButtonCenter]}
           onPress={() => navigation.navigate('AddTask')}
         >
           <MaterialIcons name="add" size={28} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton}>
+        <TouchableOpacity
+          style={[estilos.navButton, { opacity: idTarefaSelecionada ? 1 : 0.5 }]}
+          onPress={() => navigation.navigate('AddTask', { id: idTarefaSelecionada, todo: tarefas[idTarefaSelecionada-1] })}
+          disabled={!idTarefaSelecionada}
+        >
           <MaterialIcons name="edit" size={24} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton}>
-          <MaterialIcons name="settings" size={24} color="white" />
+        <TouchableOpacity style={estilos.navButton}>
+          <MaterialIcons name="settings" onPress={BuscarTarefa} size={24} color="white" />
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const estilos = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9f9f9',
@@ -191,7 +201,7 @@ const styles = StyleSheet.create({
     height: 50,
     backgroundColor: '#51c1f5',
     borderRadius: 25,
-    marginTop: 10
+    marginTop: 10,
   },
   navButtonCenter: {
     backgroundColor: '#FFC107',
@@ -202,4 +212,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default TelaPrincipal;

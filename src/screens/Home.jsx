@@ -170,7 +170,7 @@ const TelaPrincipal = () => {
           value={searchQuery}
           onChangeText={handleSearch}
         />
-        <TouchableOpacity onPress={() => setFilterMenuVisible(true)}>
+        <TouchableOpacity style={estilos.filterList} onPress={() => setFilterMenuVisible(true)}>
           <MaterialIcons name="filter-list" size={28} color="#51c1f5" />
         </TouchableOpacity>
       </View>
@@ -333,7 +333,12 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
+    marginTop: 20,
+    padding: 2,
     marginBottom: 10,
+  },
+  filterList: {
+    marginLeft: 10,
   },
   searchInput: {
     flex: 1,
@@ -341,6 +346,7 @@ const estilos = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
+    // marginTop: 10,
     fontSize: 16,
   },
   todoList: {

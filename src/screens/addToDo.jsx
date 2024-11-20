@@ -1,47 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Platform, Text, Button, Alert } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation,useRoute  } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import { Picker } from '@react-native-picker/picker';
-import { collection, addDoc } from 'firebase/firestore';
-import { MaterialIcons,FontAwesome } from '@expo/vector-icons'; 
-import { ToastAndroid } from 'react-native';
-import openDB from "../database/db" ;
+import { View, TextInput, StyleSheet,Alert, 
+        TouchableOpacity, Text}       from 'react-native';
+import { useNavigation,useRoute  }    from '@react-navigation/native';
+import { Picker }                     from '@react-native-picker/picker';
+import { MaterialIcons }              from '@expo/vector-icons'; 
+import { ToastAndroid }               from 'react-native';
+import Icon                           from 'react-native-vector-icons/FontAwesome';
+import openDB                         from "../database/db" ;
+import AsyncStorage                   from '@react-native-async-storage/async-storage';
+import DateTimePicker                 from '@react-native-community/datetimepicker';
 
 const AddTaskScreen = () => {
-  const db  =  openDB();
-  const [dataInicio, setDataInicio] = useState(new Date());
-  const [dataFinal, setDataFinal] = useState(new Date());
-  const [mostrarDataInicio, setMostrarDataInicio] = useState(false);
-  const [mostrarDataFinal, setMostrarDataFinal] = useState(false);
-  const [textoDataInicio, setTextoDataInicio] = useState(dataInicio.toLocaleDateString('pt-BR'));
-  const [textoDataFinal, setTextoDataFinal] = useState(dataFinal.toLocaleDateString('pt-BR'));
-  const [prioridade, setPrioridade] = useState("Baixa");
-  const [nomeTarefa, setNomeTarefa] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [modoEdicao, setModoEdicao] = useState(false);
-  const navegacao = useNavigation();
-  const route = useRoute();
-  const { id } = route.params || {}; 
-  const { todo } = route.params || {};
+  const db            =  openDB();
+  const navegacao     = useNavigation();
+  const route         = useRoute();
+  const { idTarefa }  = route.params || {};
+
+  const [dataInicio,              setDataInicio]  = useState(new Date());
+  const [dataFinal,               setDataFinal]   = useState(new Date());
+  const [prioridade,              setPrioridade]  = useState("Baixa");
+  const [status,                  setStatus]      = useState("Pendente");
+  const [nomeTarefa,              setNomeTarefa]  = useState('');
+  const [descricao,               setDescricao]   = useState('');
+  const [modoEdicao,              setModoEdicao]  = useState(false);
+  const [mostrarDataInicio,       setMostrarDataInicio] = useState(false);
+  const [mostrarDataFinal,        setMostrarDataFinal]  = useState(false);
+  const [textoDataInicio,         setTextoDataInicio]   = useState(dataInicio.toLocaleDateString('pt-BR'));
+  const [textoDataFinal,          setTextoDataFinal]    = useState(dataFinal.toLocaleDateString('pt-BR'));
+  const [idUser,                  setidUser]            = useState('');
+
+
+  useEffect(() => {
+    const fetchIdUser = async () => {
+      const idUsuario = await AsyncStorage.getItem('idUser'); 
+      setidUser(idUsuario); 
+    };
+  
+    fetchIdUser();
+  }, []);
   
   useEffect(() => {
-    if (todo) {
-      carregarTarefa();
-    }
-  }, [todo]);
-
-  const carregarTarefa = async () => {
-    if (todo) {
-      setNomeTarefa(todo.nome);
-      setDescricao(todo.descricao);
-      setPrioridade(todo.prioridade);
-      setTextoDataInicio(todo.dataInicial);
-      setTextoDataFinal((todo.dataFinal));
-      setModoEdicao(true);
-    }
-};
+    const editTarefa = async () => {
+      if (idTarefa && idUser) { 
+        const tarefaEdit = await db.getAllAsync('SELECT * FROM tarefas WHERE id = ? AND idUser = ?', [idTarefa, idUser]);
+  
+        if (tarefaEdit) {
+          setNomeTarefa(tarefaEdit[0].nome);
+          setDescricao(tarefaEdit[0].descricao);
+          setPrioridade(tarefaEdit[0].prioridade);
+          setTextoDataInicio(tarefaEdit[0].dataInicial);
+          setTextoDataFinal((tarefaEdit[0].dataFinal));
+          setModoEdicao(true);
+        };
+      }
+    };
+  
+    editTarefa();
+  }, [idTarefa, idUser]); 
 
 
   const aoSelecionarDataInicio = (event, selectedDate) => {
@@ -61,58 +76,31 @@ const AddTaskScreen = () => {
   const mostrarSelecionadorDataInicio = () => setMostrarDataInicio(true);
   const mostrarSelecionadorDataFinal = () => setMostrarDataFinal(true);
 
-  // const salvarTarefa = async () => {
-  //   if (nomeTarefa.trim()) {
-  //     try {
-  //       await addDoc(collection(db, 'tarefas'), {
-  //         nome: nomeTarefa,
-  //         descricao: descricao,
-  //         prioridade: prioridade,
-  //         dataInicio: dataInicio,
-  //         dataFinal: dataFinal,
-  //       });
-  //       ToastAndroid.show('Tarefa salva com sucesso!', ToastAndroid.SHORT);
-  //       // console.log('Tarefa salva com sucesso!');
-  //       navegacao.goBack();
-  //     } catch (error) {
-  //       console.error('Erro ao salvar a tarefa: ', error);
-  //     }
-  //   } else {
-  //     alert('Por favor, insira um nome para a tarefa.');
-  //   }
-  // };
-
-
-  const BuscarTarefa = async () => {
-    const statement = await db.prepareAsync('SELECT * FROM tarefas WHERE id = ?');
-    const result = await statement.executeAsync([todo.id]);
-    const firstRow = await result.getFirstAsync(); 
-    console.log(firstRow);
-  };
-
-
   const addNova = async () => {
+    const idUser = await AsyncStorage.getItem('idUser'); 
     const statement = await db.prepareAsync(
-      'INSERT INTO tarefas (nome, descricao, dataInicial, dataFinal, prioridade) VALUES ($nome,$descricao,$dataInicial,$dataFinal,$prioridade)'
+      `INSERT INTO tarefas (nome, descricao, dataInicial, dataFinal, prioridade,status,idUser) 
+       VALUES ($nome,$descricao,$dataInicial,$dataFinal,$prioridade,$status ,$idUsuario)`
     );
     
     try {
-      let result = await statement.executeAsync({$nome:nomeTarefa ,$descricao: descricao,$dataInicial: textoDataInicio,$dataFinal: textoDataFinal,$prioridade: prioridade});
+      let result = await statement.executeAsync({$nome:nomeTarefa ,$descricao: descricao,$dataInicial: textoDataInicio,
+                                                $dataFinal:textoDataFinal,$prioridade: prioridade,$status: status ,$idUsuario: idUser});
 
       ToastAndroid.show('Tarefa salva com sucesso!', ToastAndroid.SHORT);
       navegacao.goBack();
+    }catch (error) {
+        ToastAndroid.show('Erro:',error, ToastAndroid.SHORT);
+        
     }finally {
-      await statement.finalizeAsync();
-    // }catch (error) {
-    //   ToastAndroid.show('Erro:',error, ToastAndroid.SHORT);
-      
+      await statement.finalizeAsync();  
     }
   };
 
   const atualizarTarefa = async () => {
      try {
-      await db.runAsync("UPDATE tarefas SET nome = ?, descricao = ?, dataInicial = ?, dataFinal = ?, prioridade = ? WHERE id = ?",
-        [nomeTarefa, descricao, textoDataInicio, textoDataFinal, prioridade, todo.id]); 
+      await db.runAsync("UPDATE tarefas SET nome = ?, descricao = ?, dataInicial = ?, dataFinal = ?, prioridade = ?, status = ? WHERE id = ? AND idUser = ?",
+        [nomeTarefa, descricao, textoDataInicio, textoDataFinal, prioridade, status, idTarefa, idUser]); 
 
       ToastAndroid.show('Tarefa editada com sucesso!', ToastAndroid.SHORT);
       navegacao.goBack();
@@ -149,6 +137,16 @@ const AddTaskScreen = () => {
         <Picker.Item label="Baixa" value="Baixa" />
         <Picker.Item label="Média" value="Média" />
         <Picker.Item label="Alta" value="Alta" />
+      </Picker>
+
+      <Text style={estilos.label}>Status</Text>
+      <Picker
+        selectedValue={status}
+        onValueChange={(valor) => setStatus(valor)}
+        style={estilos.picker}
+      >
+        <Picker.Item label="Pendente" value="Pendente" />
+        <Picker.Item label="Concluida" value="Concluida" />
       </Picker>
 
       <Text style={estilos.label}>Data de Início</Text>
@@ -222,7 +220,7 @@ const estilos = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 10,
     backgroundColor: '#fff',
-    marginBottom: 15,
+    marginBottom: 8,
   },
   containerData: {
     flexDirection: 'row',
@@ -241,8 +239,8 @@ const estilos = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#51c1f5',
     marginHorizontal: 20,
-    marginBottom: 20,
-    marginTop: 20
+    marginBottom: 25,
+    // marginTop: 20
   },
   navButton: {
     justifyContent: 'center',

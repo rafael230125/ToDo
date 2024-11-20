@@ -1,15 +1,17 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { CheckBox } from 'react-native-elements';  // Usando o CheckBox do react-native-elements
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import openDB from "../database/db";
 
 const LoginScreen = () => {
   const db = openDB();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [manterLogado, setManterLogado] = useState(false); // Estado para o checkbox
+  const [manterLogado, setManterLogado] = useState(false); 
+  const [passwordVisible, setPasswordVisible] = useState(false); 
   const usernameRef = useRef(null);
   const passwordRef = useRef(null);
 
@@ -18,17 +20,18 @@ const LoginScreen = () => {
   const validarUsuario = async () => {
     try {
       const statement = await db.prepareAsync('SELECT * FROM usuario WHERE usuario = ?');
-      const result = await statement.executeAsync([username]);
-      const firstRow = await result.getFirstAsync();
-
+      const result    = await statement.executeAsync([username]);
+      const firstRow  = await result.getFirstAsync();
+    
       if (firstRow) {
         if (firstRow.senha === password) {
           if (manterLogado) {
-            await AsyncStorage.setItem('manterLogado', 'true'); // Salva a preferência
-            await AsyncStorage.setItem('nomeUsuer', firstRow.nome); 
+            await AsyncStorage.setItem('manterLogado', 'true'); 
+            await AsyncStorage.setItem('idUser', String(firstRow.id));
           } else {
-            await AsyncStorage.removeItem('manterLogado'); // Remove a preferência
+            await AsyncStorage.removeItem('manterLogado'); 
           }
+
           navigation.navigate('Home');
         } else {
           Alert.alert('Aviso', 'Senha incorreta!');
@@ -63,15 +66,27 @@ const LoginScreen = () => {
         onChangeText={setUsername}
       />
 
-      <TextInput
-        style={styles.input}
-        ref={passwordRef}
-        placeholder="Senha"
-        placeholderTextColor="#333"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          ref={passwordRef}
+          placeholder="Senha"
+          placeholderTextColor="#333"
+          secureTextEntry={!passwordVisible}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity
+          style={styles.eyeIcon}
+          onPress={() => setPasswordVisible(!passwordVisible)}
+        >
+          <Ionicons
+            name={passwordVisible ? "eye" : "eye-off"}
+            size={24}
+            color="#333"
+          />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.checkboxContainer}>
         <CheckBox style={styles.checkbox}
@@ -88,7 +103,7 @@ const LoginScreen = () => {
       {/* Link para Sign Up */}
       <TouchableOpacity onPress={() => navigation.navigate('NewUser')}>
         <Text style={styles.signUpText}>
-          Ainda não possui uma conta? <Text style={styles.signUpLink}>Registre-se</Text>
+          Ainda não possui uma conta? <Text style={styles.signUpLink}>Registre-se.</Text>
         </Text>
       </TouchableOpacity>
     </View>
@@ -133,15 +148,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 5,
+  },
+  passwordInput: {
+    flex: 1,
+    height: 50,
+    paddingHorizontal: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  eyeIcon: {
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+  },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   checkbox: {
     alignSelf: 'center',
-  },
-  textoCheckbox: {
-    // marginRight: 100,
   },
   button: {
     width: '100%',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { TextInputMask } from 'react-native-masked-text';
@@ -18,7 +18,7 @@ const NewUsers = () => {
   const [passwordError, setPasswordError] = useState(false);
   const [confirmPasswordError, setConfirmPasswordError] = useState(false);
   const [dataNascError, setDataNascError] = useState(false);
-
+  const passwordRef = useRef(null);
   const navigation = useNavigation();
 
   const handleSignIn = () => {
@@ -32,8 +32,13 @@ const NewUsers = () => {
       Alert.alert('Aviso', 'Campos obrigatórios, favor preencher');
       return;
     }else {
-        addUser();
-        navigation.navigate('Home');
+        if (confirmPassword === password) {
+          addUser();
+          navigation.goBack();
+        }else {
+          Alert.alert('Aviso', 'Senhas não conferem!');
+          passwordRef.current.focus();
+        }
     }  
   };
 
@@ -45,15 +50,12 @@ const NewUsers = () => {
     try {
       let result = await statement.executeAsync({$nome: nome ,$usuario: username, $senha: password, $dataNasc: dataNasc});
 
-      ToastAndroid.show('Usuário criado com sucesso!', ToastAndroid.SHORT);
-      navegacao.goBack();
+      Alert.alert('Cadastro', 'Novo usuário registrado com sucesso!');
+    }catch (error) {
+      Alert.alert('Erro', error);
     }finally {
       await statement.finalizeAsync();
-    // }catch (error) {
-    //   ToastAndroid.show('Erro:',error, ToastAndroid.SHORT);
-      
-    }
-  };
+  }};
 
   return (
     <View style={styles.container}>
@@ -105,6 +107,7 @@ const NewUsers = () => {
     
       <TextInput
         style={[styles.input, confirmPasswordError && styles.inputError]}
+        ref={passwordRef}
         placeholder="Confirmar senha"
         placeholderTextColor="#aaa"
         secureTextEntry

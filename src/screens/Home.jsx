@@ -4,49 +4,77 @@ import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BackHandler, Alert } from 'react-native'; 
 import { Modal } from 'react-native';
 import openDB from "../database/db";
 
 const TelaPrincipal = () => {
   const db = openDB();
   const navigation = useNavigation();
-  const [tarefas, setTarefas] = useState([]);
-  const [tarefasFiltradas, setTarefasFiltradas] = useState([]); // Tarefas filtradas
+  const [tarefas,             setTarefas]             = useState([]);
+  const [tarefasFiltradas,    setTarefasFiltradas]    = useState([]); 
   const [idTarefaSelecionada, setIdTarefaSelecionada] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');  // Estado para armazenar a pesquisa
-  const [nomeUser, setUsuario] = useState('');  // Estado para armazenar a pesquisa
-  const [filterOption, setFilterOption] = useState(null);
-  const [isFilterMenuVisible, setFilterMenuVisible] = useState(false);
+  const [searchQuery,         setSearchQuery]         = useState('');  
+  const [nomeUser,            setUsuario]             = useState('');  
+  const [filterOption,        setFilterOption]        = useState(null);
+  const [isFilterMenuVisible, setFilterMenuVisible]   = useState(false);
+
+
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const handleBackPress = () => {
+        // Exibe um alerta de confirmação antes de sair
+        // Alert.alert(
+        //   "Sair do aplicativo",
+        //   "Deseja realmente sair?",
+        //   [
+        //     {
+        //       text: "Cancelar",
+        //       style: "cancel",
+        //     },
+        //     {
+        //       text: "Sair",
+        //       onPress: () => BackHandler.exitApp(),
+        //     },
+        //   ]
+        // );
+        BackHandler.exitApp();
+        return true; // Previne o comportamento padrão (voltar para outra tela)
+      };
+
+      // Adiciona o listener do botão "voltar"
+      BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+
+      // Remove o listener ao sair da tela
+      return () => BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
+    }, [])
+  );
 
 
   useFocusEffect(
     React.useCallback(() => {
       async function buscarTarefas() {
-        const todasAsLinhas = await db.getAllAsync('SELECT * FROM tarefas');
+        
+        const idUsuario = await AsyncStorage.getItem('idUser'); 
+
+        const nomeusuario = await db.getAllAsync(`  SELECT nome FROM usuario WHERE id = ?`, [idUsuario]); 
+
+        setUsuario(nomeusuario[0].nome); 
+
+        const todasAsLinhas = await db.getAllAsync(`  SELECT * 
+                                                      FROM tarefas 
+                                                      WHERE idUser = ?
+                                                      AND status = "Pendente"`,
+                                                      [idUsuario]);
+
         setTarefas(todasAsLinhas);
-        setTarefasFiltradas(todasAsLinhas); 
+        setTarefasFiltradas(todasAsLinhas);        
       }
       setSearchQuery('');
       buscarTarefas();
     }, [])
   );
-
-  useEffect(() => {
-    const pegaUser = async () => {
-      try {
-        const usuario = await AsyncStorage.getItem('nomeUsuer'); 
-        if (usuario) {
-          setUsuario(usuario); 
-        }
-      } catch (erro) {
-        console.error('Erro ao verificar login salvo:', erro);
-      } finally {
-         
-      }
-    };
-
-    pegaUser();
-  }, []);
 
   // Função para filtrar tarefas com base no texto da pesquisa
   const handleSearch = (text) => {
@@ -64,24 +92,20 @@ const TelaPrincipal = () => {
   };
 
   async function atualizarLista() {
-    const todasAsLinhas = await db.getAllAsync('SELECT * FROM tarefas');
+    const idUsuario = await AsyncStorage.getItem('idUser');
+    const todasAsLinhas = await db.getAllAsync(`  
+      SELECT *
+      FROM tarefas 
+      WHERE idUser = ?
+      AND status = "Pendente"`,
+      [idUsuario]);
+
     setTarefas(todasAsLinhas);
-    setTarefasFiltradas(todasAsLinhas); // Recarrega todas as tarefas ao atualizar
+    setTarefasFiltradas(todasAsLinhas); 
   }
 
-  const excluirTabela = async () => {
-    await db.runAsync('DROP TABLE tarefas');
-  };
-
-  const BuscarTarefa = async () => {
-    const statement = await db.prepareAsync('SELECT * FROM tarefas WHERE id = ?');
-    const result = await statement.executeAsync([idTarefaSelecionada]);
-    const firstRow = await result.getFirstAsync(); 
-    console.log(firstRow);
-  };
-
-  // Função para excluir a tarefa selecionada
   const excluirTarefa = async () => {
+    console.log(idTarefaSelecionada);
     if (idTarefaSelecionada !== null) {
       await db.execAsync(`DELETE FROM tarefas WHERE id = $idTarefaSelecionada`, {id: idTarefaSelecionada});
 
@@ -108,6 +132,7 @@ const TelaPrincipal = () => {
   const applyFilters = (text = searchQuery, option = filterOption) => {
     let filteredTasks = tarefas;
   
+    // Filtro por texto (nome ou descrição)
     if (text) {
       filteredTasks = filteredTasks.filter((tarefa) =>
         tarefa.nome.toLowerCase().includes(text.toLowerCase()) ||
@@ -115,19 +140,39 @@ const TelaPrincipal = () => {
       );
     }
   
+    // Filtro por prioridade
     if (option === 'prioridade') {
       filteredTasks = filteredTasks.sort((a, b) => {
         const priorityOrder = { 'Alta': 1, 'Média': 2, 'Baixa': 3 };
         return priorityOrder[a.prioridade] - priorityOrder[b.prioridade];
       });
+  
+    // Filtro por data
     } else if (option === 'data') {
       const hoje = new Date();
-        filteredTasks = filteredTasks
+      filteredTasks = filteredTasks
         .filter((tarefa) => converterParaDate(tarefa.dataFinal) <= hoje)
         .sort((a, b) => converterParaDate(a.dataFinal) - converterParaDate(b.dataFinal));
+  
+    // Filtro por status
+    } else if (option === 'status') {
+      Concluidas();
+      // filteredTasks = filteredTasks.filter((tarefa) => tarefa.status === 'Concluida');
     }
   
     setTarefasFiltradas(filteredTasks);
+  };
+
+  const  Concluidas = async () => {
+    const idUsuario = await AsyncStorage.getItem('idUser'); 
+    const todasAsLinhas = await db.getAllAsync(`  SELECT * 
+                                                  FROM tarefas 
+                                                  WHERE idUser = ?
+                                                  AND status = "Concluida"`,
+                                                  [idUsuario]);
+
+    setTarefas(todasAsLinhas);
+    setTarefasFiltradas(todasAsLinhas); 
   };
 
   const converterParaDate = (dataString) => {
@@ -147,7 +192,6 @@ const TelaPrincipal = () => {
     atualizarLista();
   };
   
-
   return (
     <View style={estilos.container}>
       <View style={estilos.header}>
@@ -184,7 +228,7 @@ const TelaPrincipal = () => {
       >
         <View style={estilos.modalContainer}>
           <View style={estilos.modalContent}>
-            <Text style={estilos.modalTitle}>Selecione um Filtro</Text>
+            <Text style={estilos.modalTitle}>Filtrar por</Text>
 
             <TouchableOpacity
               onPress={() => {
@@ -193,10 +237,10 @@ const TelaPrincipal = () => {
               }}
               style={[
                 estilos.modalOptionContainer,
-                filterOption === 'prioridade' && estilos.modalOptionSelected, // Aplica o estilo se for o filtro atual
+                filterOption === 'prioridade' && estilos.modalOptionSelected, 
               ]}
             >
-              <Text style={estilos.modalOption}>Filtrar por Prioridade</Text>
+              <Text style={estilos.modalOption}>Prioridade</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -206,10 +250,23 @@ const TelaPrincipal = () => {
               }}
               style={[
                 estilos.modalOptionContainer,
-                filterOption === 'data' && estilos.modalOptionSelected, // Aplica o estilo se for o filtro atual
+                filterOption === 'data' && estilos.modalOptionSelected,
               ]}
             >
-              <Text style={estilos.modalOption}>Filtrar por Data</Text>
+              <Text style={estilos.modalOption}>Data final </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setFilterMenuVisible(false);
+                handleFilterChange('status');
+              }}
+              style={[
+                estilos.modalOptionContainer,
+                filterOption === 'status' && estilos.modalOptionSelected,
+              ]}
+            >
+              <Text style={estilos.modalOption}>Concluidas </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -219,10 +276,10 @@ const TelaPrincipal = () => {
               }}
               style={[
                 estilos.modalOptionContainer,
-                filterOption === null && estilos.modalOptionSelected, // Aplica o estilo para "Remover Filtros"
+                filterOption === null && estilos.modalOptionSelected, 
               ]}
             >
-              <Text style={estilos.modalOption}>Remover Filtros</Text>
+              <Text style={estilos.modalOption}>Sem Filtros</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => setFilterMenuVisible(false)}>
@@ -237,7 +294,9 @@ const TelaPrincipal = () => {
         data={tarefasFiltradas} // Usa as tarefas filtradas para exibição
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[estilos.todoItem, item.id === idTarefaSelecionada && estilos.selectedItem]}
+            style={[estilos.todoItem, 
+                    item.id === idTarefaSelecionada && estilos.selectedItem,
+                    item.status === 'Concluida' && estilos.concluidaItem]}
             onPress={() => selecionarTarefa(item.id)}
           >
             {obterIconePrioridade(item.prioridade)}
@@ -269,15 +328,17 @@ const TelaPrincipal = () => {
         >
           <MaterialIcons name="add" size={28} color="white" />
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[estilos.navButton, { opacity: idTarefaSelecionada ? 1 : 0.5 }]}
-          onPress={() => navigation.navigate('AddTask', { id: idTarefaSelecionada, todo: tarefas[idTarefaSelecionada-1] })}
+          onPress={() => navigation.navigate('AddTask', { idTarefa: idTarefaSelecionada})}
           disabled={!idTarefaSelecionada}
         >
           <MaterialIcons name="edit" size={24} color="white" />
         </TouchableOpacity>
+
         <TouchableOpacity style={estilos.navButton}>
-          <MaterialIcons name="settings" onPress={BuscarTarefa} size={24} color="white" />
+          <MaterialIcons name="settings" onPress={''} size={24} color="white" />
         </TouchableOpacity>
       </View>
     </View>
@@ -413,7 +474,7 @@ const estilos = StyleSheet.create({
   },
 
   modalOptionContainer: {
-    padding: 10,
+    padding: 4,
     borderRadius: 5,
     marginVertical: 5,
   },
@@ -430,15 +491,15 @@ const estilos = StyleSheet.create({
   modalContent: {
     width: '80%',
     backgroundColor: 'white',
-    padding: 20,
+    padding: 10,
     borderRadius: 10,
     alignItems: 'center',
     elevation: 5,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 1,
   },
   modalOption: {
     fontSize: 16,
@@ -450,6 +511,10 @@ const estilos = StyleSheet.create({
     color: '#F44336',
     marginTop: 20,
     textAlign: 'center',
+  },
+  concluidaItem: {
+    backgroundColor: '#d3d3d3', 
+    opacity: 0.7, 
   },
 });
 

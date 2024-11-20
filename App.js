@@ -16,7 +16,7 @@ export default function App() {
   useEffect(() => {
     const verificarLoginSalvo = async () => {
       try {
-        const manterLogado = await AsyncStorage.getItem('manterLogado'); 
+        const manterLogado = await AsyncStorage.getItem('manterLogado');
         if (manterLogado === 'true') {
           setRotaInicial('Home'); 
         }

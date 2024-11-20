@@ -15,11 +15,12 @@ CREATE TABLE IF NOT EXISTS tarefas (
   descricao TEXT,
   dataInicial TEXT,
   dataFinal TEXT,
-  prioridade TEXT
+  prioridade TEXT,
+  status TEXT,
+  idUser INTEGER
 );
 
 `;
-
 
 const SQL_CREATE_usuarios = `
 CREATE TABLE IF NOT EXISTS usuario (
@@ -32,11 +33,17 @@ CREATE TABLE IF NOT EXISTS usuario (
 
 `;
 
+const SQL_DELETE_Tables = `
+  DROP TABLE IF EXISTS tarefas;
+  DROP TABLE IF EXISTS usuario;
+`;
+
 export default function openDB() {
   if (!_db) {
     _db = SQLite.openDatabaseSync(DATABASE_NAME);
     _db.execAsync(SQL_CREATE_ENTRIES);
     _db.execAsync(SQL_CREATE_usuarios);
+    // _db.execAsync(SQL_DELETE_Tables);
   }
   return _db;
 }

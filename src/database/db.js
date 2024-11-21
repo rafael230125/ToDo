@@ -4,11 +4,9 @@ const DATABASE_NAME = 'todo';
 let _db = null;
 
 
-// INSERT INTO tarefas (nome, descricao, dataInicial, dataFinal, prioridade)
-// VALUES ('test1', '123', '10/11/2024', '10/11/2024', 'Baixa');
 
 // SQL para criar a tabela e inserir uma entrada inicial
-const SQL_CREATE_ENTRIES = `
+const SQL_CREATE_tarefas = `
 CREATE TABLE IF NOT EXISTS tarefas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nome TEXT,
@@ -33,17 +31,29 @@ CREATE TABLE IF NOT EXISTS usuario (
 
 `;
 
+const SQL_CREATE_config = `
+CREATE TABLE IF NOT EXISTS config (
+  tema TEXT,
+  logado TEXT ,
+  notificacoes TEXT,
+  idUser INTEGER
+);
+`;
+
 const SQL_DELETE_Tables = `
   DROP TABLE IF EXISTS tarefas;
   DROP TABLE IF EXISTS usuario;
+  
 `;
 
 export default function openDB() {
   if (!_db) {
     _db = SQLite.openDatabaseSync(DATABASE_NAME);
-    _db.execAsync(SQL_CREATE_ENTRIES);
+    _db.execAsync(SQL_CREATE_tarefas);
     _db.execAsync(SQL_CREATE_usuarios);
-    // _db.execAsync(SQL_DELETE_Tables);
+    _db.execAsync(SQL_CREATE_config);
+    // _db.execAsync('DROP TABLE IF EXISTS config');
+     // _db.execAsync(SQL_DELETE_Tables);
   }
   return _db;
 }

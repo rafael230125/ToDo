@@ -24,33 +24,14 @@ const TelaPrincipal = () => {
   useFocusEffect(
     React.useCallback(() => {
       const handleBackPress = () => {
-        // Exibe um alerta de confirmação antes de sair
-        // Alert.alert(
-        //   "Sair do aplicativo",
-        //   "Deseja realmente sair?",
-        //   [
-        //     {
-        //       text: "Cancelar",
-        //       style: "cancel",
-        //     },
-        //     {
-        //       text: "Sair",
-        //       onPress: () => BackHandler.exitApp(),
-        //     },
-        //   ]
-        // );
         BackHandler.exitApp();
-        return true; // Previne o comportamento padrão (voltar para outra tela)
+        return true; 
       };
 
-      // Adiciona o listener do botão "voltar"
       BackHandler.addEventListener("hardwareBackPress", handleBackPress);
-
-      // Remove o listener ao sair da tela
       return () => BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
     }, [])
   );
-
 
   useFocusEffect(
     React.useCallback(() => {
@@ -338,7 +319,7 @@ const TelaPrincipal = () => {
         </TouchableOpacity>
 
         <TouchableOpacity style={estilos.navButton}>
-          <MaterialIcons name="settings" onPress={''} size={24} color="white" />
+          <MaterialIcons name="settings" onPress={() => navigation.navigate('Config')} size={24} color="white" />
         </TouchableOpacity>
       </View>
     </View>

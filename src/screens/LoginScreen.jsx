@@ -14,6 +14,7 @@ const LoginScreen = () => {
   const [passwordVisible, setPasswordVisible] = useState(false); 
   const usernameRef = useRef(null);
   const passwordRef = useRef(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   const navigation = useNavigation();
 
@@ -68,13 +69,17 @@ const LoginScreen = () => {
 
       <View style={styles.passwordContainer}>
         <TextInput
-          style={styles.passwordInput}
+          style={[styles.passwordInput,
+            isFocused && styles.inputFocused,
+          ]}
           ref={passwordRef}
           placeholder="Senha"
           placeholderTextColor="#333"
           secureTextEntry={!passwordVisible}
           value={password}
           onChangeText={setPassword}
+          onFocus={() => setIsFocused(true)} 
+          onBlur={() => setIsFocused(false)} 
         />
         <TouchableOpacity
           style={styles.eyeIcon}
@@ -161,6 +166,7 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     height: 50,
+    // borderWidth: 0.3,
     paddingHorizontal: 10,
     fontSize: 16,
     color: '#333',

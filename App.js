@@ -7,6 +7,7 @@ import AddTaskScreen from './src/screens/addToDo';
 import LoginScreen from './src/screens/LoginScreen';
 import NewUsers from './src/screens/NewUser';
 import ConfigScreen from './src/screens/Config';
+import Galeria from './src/componentes/Galeria';
 
 const Stack = createStackNavigator();
 
@@ -61,7 +62,18 @@ export default function App() {
             name="Config" 
             component={ConfigScreen} 
             options={{ title: 'Configurações' }} 
-/>
+          />
+          <Stack.Screen 
+            name="Galeria" 
+            component={Galeria} 
+            options={{
+              title: 'Minha Galeria',
+              headerStyle: {
+                backgroundColor: '#333', // Cor de fundo
+              },
+              headerTintColor: '#fff', // Cor do texto e ícones
+            }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     )

@@ -1,32 +1,37 @@
-import React, { useState, useEffect }    from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { BackHandler, Alert } from 'react-native'; 
-import { ToastAndroid }       from 'react-native';
-import AsyncStorage           from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Switch, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { ToastAndroid }               from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import openDB from "../database/db";
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Para ícones
 
-export default function ConfigScreen({ navigation }) {
-  const [isDarkTheme,   setIsDarkTheme]    = useState(false);
-  const [notifications, setNotifications]  = useState(false);
-  const [logado,        setLogado]         = useState(false);
-  const [idUser,        setIdUsuario]   = useState('');
-  const [usernane,      setusernane]   = useState('');
-
-
+export default function ConfigScreen() {
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [notifications, setNotifications] = useState(false);
+  const [logado, setLogado] = useState(false);
+  const [idUser, setIdUsuario] = useState('');
+  const [usernane, setusernane] = useState('');
+  const [profileImage, setProfileImage] = useState('https://placekitten.com/200/200'); // URL inicial
+  const navigation = useNavigation();
   const db = openDB();
+
+  // Método para abrir a galeria e selecionar uma imagem
+  const selectImage = async () => {
+    navigation.navigate('Galeria');
+  };
 
   useEffect(() => {
     const fetchIdUser = async () => {
       const idUsuario = await AsyncStorage.getItem('idUser');
-      setIdUsuario(idUsuario); 
+      setIdUsuario(idUsuario);
 
-      const statement = await db.prepareAsync('SELECT nome FROM usuario WHERE id = ?');
-      const result    = await statement.executeAsync([idUsuario]);
-      const firstRow  = await result.getFirstAsync();
+      const statement = await db.prepareAsync('SELECT nome,foto FROM usuario WHERE id = ?');
+      const result = await statement.executeAsync([idUsuario]);
+      const firstRow = await result.getFirstAsync();
       setusernane(firstRow.nome);
+      setProfileImage(firstRow.foto);
     };
-  
+
     fetchIdUser();
   }, []);
 
@@ -49,6 +54,7 @@ export default function ConfigScreen({ navigation }) {
   
     verifcaConfig();
   }, [idUser]); 
+
 
   const firstInsertConfig = async () => {
     const idUser = await AsyncStorage.getItem('idUser'); 
@@ -73,72 +79,37 @@ export default function ConfigScreen({ navigation }) {
       await statement.finalizeAsync();  
     }
   };
+
   
   const salvaConfig = async () => {
-    const idUser = await AsyncStorage.getItem('idUser'); 
+    const idUser = await AsyncStorage.getItem('idUser');
     const results = await db.getAllAsync('SELECT COUNT(*) AS count FROM config');
     const count = results[0].count;
-    
+  
     if (count === 0) {
-        firstInsertConfig();
+      await firstInsertConfig();
     } else {
-        try {
-            await db.runAsync("UPDATE config SET tema = ?, logado = ?, notificacoes = ? WHERE idUser = ?",
-                [String(isDarkTheme), String(logado), String(notifications), idUser]); 
-
-            ToastAndroid.show('Configurações editadas com sucesso!', ToastAndroid.SHORT);
-        } catch (error) {
-            ToastAndroid.show(`Erro: ${error}`, ToastAndroid.SHORT);
-        } 
-    }
-  }
-
-  const sairSistema = () => {
-    // Exibe um alerta de confirmação antes de sair
-    Alert.alert(
-      "Sair do aplicativo",
-      "Deseja realmente sair?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Sair",
-          onPress: () => {
-            // Aqui desloga o usuário e navega para a tela de login
-            navigation.replace('Login');
-          },
-        },
-      ]
-    );
-  };
-
-  React.useEffect(() => {
-    // Adiciona o listener do botão de "voltar" para Android
-    const backHandlerListener = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => {
-        sairSistema(); // Mostra o alerta
-        return true; // Previne a ação padrão (fechar ou ir para a tela anterior)
+      try {
+        await db.runAsync(
+          "UPDATE config SET tema = ?, logado = ?, notificacoes = ? WHERE idUser = ?",
+          [String(isDarkTheme), String(logado), String(notifications), idUser]
+        );
+  
+        ToastAndroid.show('Configurações editadas com sucesso!', ToastAndroid.SHORT);
+      } catch (error) {
+        ToastAndroid.show(`Erro: ${error}`, ToastAndroid.SHORT);
       }
-    );
-
-    return () => backHandlerListener.remove(); // Remove o listener ao desmontar o componente
-  }, []);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: isDarkTheme ? '#333' : '#fff' }]}>
-      {/* Foto de perfil e ícone de editar */}
+      {/* Foto de perfil e botão para editar */}
       <View style={styles.profileSection}>
-        <Image
-          source={{ uri: 'https://placekitten.com/200/200' }} // Substitua pelo caminho da sua imagem
-          style={styles.profileImage}
-        />
-        <TouchableOpacity onPress={() => alert('Editar foto de perfil')} style={styles.editIconContainer}>
-          {/* <Icon name="edit" size={30} color={isDarkTheme ? '#fff' : '#000'} /> */}
-          <Text style={styles.nomeUsu}>{usernane}</Text>
+        <TouchableOpacity onPress={selectImage}>
+          <Image source={{ uri: `data:image/jpg;base64,${profileImage}` }} style={styles.profileImage} />
         </TouchableOpacity>
+        <Text style={styles.nomeUsu}>{usernane}</Text>
       </View>
 
       {/* Tema Dark/Light */}
@@ -176,7 +147,6 @@ export default function ConfigScreen({ navigation }) {
         />
       </View>
 
-      {/* Salvar configurações */}
       <TouchableOpacity style={styles.logoutButton} onPress={salvaConfig}>
         <Text style={styles.logoutButtonText}>Salvar configurações</Text>
       </TouchableOpacity>
@@ -193,15 +163,18 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     marginBottom: 20,
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   profileImage: {
     width: 100,
     height: 100,
-    borderRadius: 100,
+    borderRadius: 50,
   },
-  editIconContainer: {
-    marginLeft: 10,
+  nomeUsu: {
+    marginTop: 10,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
   },
   optionContainer: {
     flexDirection: 'row',
@@ -225,10 +198,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  nomeUsu: {
-    marginTop: 10,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white'
-  }
 });

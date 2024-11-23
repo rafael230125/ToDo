@@ -18,8 +18,7 @@ const TelaPrincipal = () => {
   const [nomeUser,            setUsuario]             = useState('');  
   const [filterOption,        setFilterOption]        = useState(null);
   const [isFilterMenuVisible, setFilterMenuVisible]   = useState(false);
-
-
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -36,13 +35,14 @@ const TelaPrincipal = () => {
   useFocusEffect(
     React.useCallback(() => {
       async function buscarTarefas() {
-        
         const idUsuario = await AsyncStorage.getItem('idUser'); 
 
-        const nomeusuario = await db.getAllAsync(`  SELECT nome FROM usuario WHERE id = ?`, [idUsuario]); 
-
-        setUsuario(nomeusuario[0].nome); 
-
+        const dadosUsu = await db.getAllAsync(`  SELECT nome,tema FROM usuario USU
+                                                 JOIN config CFG ON CFG.iduser = USU.id
+                                                 WHERE id = ?`, [idUsuario]); 
+        setUsuario(dadosUsu[0].nome); 
+        setIsDarkTheme(dadosUsu[0].tema);
+        
         const todasAsLinhas = await db.getAllAsync(`  SELECT * 
                                                       FROM tarefas 
                                                       WHERE idUser = ?
@@ -174,8 +174,8 @@ const TelaPrincipal = () => {
   };
   
   return (
-    <View style={estilos.container}>
-      <View style={estilos.header}>
+    <View style={[estilos.container,{ backgroundColor: isDarkTheme ? '#333' : '#fff' }]}>
+      <View style={[estilos.header, { color: isDarkTheme ? '#fff' : '#333' }]}>
         <View style={estilos.profileContainer}>
           <View style={estilos.leftContainer}>
             <Image
@@ -188,9 +188,9 @@ const TelaPrincipal = () => {
         </View>
       </View>
 
-      <View style={estilos.searchContainer}>
+      <View style={[estilos.searchContainer,{ color: isDarkTheme ? '#333' : '#fff' }]}>
         <TextInput
-          style={estilos.searchInput}
+          style={[estilos.searchInput,{ color: isDarkTheme ? '#fff' : '#333' }]}
           placeholder="Pesquisar tarefas..."
           value={searchQuery}
           onChangeText={handleSearch}
@@ -207,9 +207,9 @@ const TelaPrincipal = () => {
         visible={isFilterMenuVisible}
         onRequestClose={() => setFilterMenuVisible(false)}
       >
-        <View style={estilos.modalContainer}>
-          <View style={estilos.modalContent}>
-            <Text style={estilos.modalTitle}>Filtrar por</Text>
+        <View style={[estilos.modalContainer,{ color: isDarkTheme ? '#333' : '#fff' }]}>
+          <View style={[estilos.modalContent,{ backgroundColor: isDarkTheme ? '#333' : '#fff' }]}>
+            <Text style={[estilos.modalTitle,{ color: isDarkTheme ? '#fff' : '#333' }]}>Filtrar por</Text>
 
             <TouchableOpacity
               onPress={() => {
@@ -221,7 +221,7 @@ const TelaPrincipal = () => {
                 filterOption === 'prioridade' && estilos.modalOptionSelected, 
               ]}
             >
-              <Text style={estilos.modalOption}>Prioridade</Text>
+              <Text style={[estilos.modalOption,{ color: isDarkTheme ? '#fff' : '#333' }]}>Prioridade</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -231,10 +231,10 @@ const TelaPrincipal = () => {
               }}
               style={[
                 estilos.modalOptionContainer,
-                filterOption === 'data' && estilos.modalOptionSelected,
+                filterOption === 'data' && [estilos.modalOptionSelected,],
               ]}
             >
-              <Text style={estilos.modalOption}>Data final </Text>
+              <Text style={[estilos.modalOption,{ color: isDarkTheme ? '#fff' : '#333' }]}>Data final </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -247,7 +247,7 @@ const TelaPrincipal = () => {
                 filterOption === 'status' && estilos.modalOptionSelected,
               ]}
             >
-              <Text style={estilos.modalOption}>Concluidas </Text>
+              <Text style={[estilos.modalOption,{ color: isDarkTheme ? '#fff' : '#333' }]}>Concluidas </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -260,7 +260,7 @@ const TelaPrincipal = () => {
                 filterOption === null && estilos.modalOptionSelected, 
               ]}
             >
-              <Text style={estilos.modalOption}>Sem Filtros</Text>
+              <Text style={[estilos.modalOption,{ color: isDarkTheme ? '#fff' : '#333' }]}>Sem Filtros</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => setFilterMenuVisible(false)}>

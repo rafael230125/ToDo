@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS usuario (
   nome TEXT NOT NULL,
   usuario TEXT NOT NULL,
   senha TEXT NOT NULL,
-  dataNasc TEXT NOT NULL
+  dataNasc TEXT NOT NULL,
+  foto TEXT
 );
 
 `;
@@ -53,7 +54,7 @@ export default function openDB() {
     _db.execAsync(SQL_CREATE_usuarios);
     _db.execAsync(SQL_CREATE_config);
     // _db.execAsync('DROP TABLE IF EXISTS config');
-     // _db.execAsync(SQL_DELETE_Tables);
+    // _db.execAsync(SQL_DELETE_Tables);
   }
   return _db;
 }

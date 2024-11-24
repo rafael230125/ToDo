@@ -1,0 +1,28 @@
+import React, { createContext, useState, useContext } from 'react';
+
+const ThemeContext = createContext();
+
+export const ThemeProvider = ({ children }) => {
+  const [theme, setTheme] = useState('light'); // Gerenciar tema
+  const [fontScale, setFontScale] = useState(1); // Gerenciar tamanho da fonte (1 = normal)
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
+  const toggleFontScale = () => {
+    setFontScale((prevScale) => (prevScale === 1 ? 1.2 : 1)); // Alterna entre normal e aumentado (20% maior)
+  };
+
+  const colors = theme === 'light'
+    ? { background: '#fff', text: '#000', switchThumb: '#000' }
+    : { background: '#333', text: '#fff', switchThumb: '#1E90FF' };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme, colors, fontScale, toggleFontScale }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const useTheme = () => useContext(ThemeContext);

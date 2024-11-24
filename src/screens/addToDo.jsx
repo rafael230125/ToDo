@@ -9,6 +9,7 @@ import openDB from "../database/db";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontContext } from '../context/FontContext'; // Contexto para ajustar o tamanho da fonte
+import { ThemeContext } from '../context/ThemeContext'; // Contexto para alternar o tema
 
 const AddTaskScreen = () => {
   const db = openDB();
@@ -30,6 +31,7 @@ const AddTaskScreen = () => {
   const [idUser, setidUser] = useState('');
 
   const { fontSize } = useContext(FontContext); // Usa o tamanho da fonte do contexto
+  const { isDarkTheme } = useContext(ThemeContext); // Usa o estado do tema global
 
   useEffect(() => {
     const fetchIdUser = async () => {
@@ -79,8 +81,8 @@ const AddTaskScreen = () => {
   const addNova = async () => {
     const idUser = await AsyncStorage.getItem('idUser');
     const statement = await db.prepareAsync(
-      `INSERT INTO tarefas (nome, descricao, dataInicial, dataFinal, prioridade,status,idUser) 
-       VALUES ($nome,$descricao,$dataInicial,$dataFinal,$prioridade,$status ,$idUsuario)`
+      `INSERT INTO tarefas (nome, descricao, dataInicial, dataFinal, prioridade, status, idUser) 
+       VALUES ($nome, $descricao, $dataInicial, $dataFinal, $prioridade, $status, $idUsuario)`
     );
 
     try {
@@ -119,24 +121,24 @@ const AddTaskScreen = () => {
 
   return (
     <ScrollView contentContainerStyle={estilos.scrollContainer}>
-      <View style={estilos.container}>
-        <Text style={[estilos.label, { fontSize }]}>Nome</Text>
+      <View style={[estilos.container, { backgroundColor: isDarkTheme ? '#333' : '#fdfdfd' }]}>
+        <Text style={[estilos.label, { fontSize, color: isDarkTheme ? '#fff' : '#333' }]}>Nome</Text>
         <TextInput
-          style={[estilos.input, { fontSize }]}
+          style={[estilos.input, { fontSize, color: isDarkTheme ? '#fff' : '#000' }]}
           placeholder="Nome da tarefa"
           value={nomeTarefa}
           onChangeText={setNomeTarefa}
         />
 
-        <Text style={[estilos.label, { fontSize }]}>Descrição</Text>
+        <Text style={[estilos.label, { fontSize, color: isDarkTheme ? '#fff' : '#333' }]}>Descrição</Text>
         <TextInput
-          style={[estilos.input, { fontSize }]}
+          style={[estilos.input, { fontSize, color: isDarkTheme ? '#fff' : '#000' }]}
           placeholder="Breve descrição"
           value={descricao}
           onChangeText={setDescricao}
         />
 
-        <Text style={[estilos.label, { fontSize }]}>Prioridade</Text>
+        <Text style={[estilos.label, { fontSize, color: isDarkTheme ? '#fff' : '#333' }]}>Prioridade</Text>
         <Picker
           selectedValue={prioridade}
           onValueChange={(valor) => setPrioridade(valor)}
@@ -147,7 +149,7 @@ const AddTaskScreen = () => {
           <Picker.Item label="Alta" value="Alta" />
         </Picker>
 
-        <Text style={[estilos.label, { fontSize }]}>Status</Text>
+        <Text style={[estilos.label, { fontSize, color: isDarkTheme ? '#fff' : '#333' }]}>Status</Text>
         <Picker
           selectedValue={status}
           onValueChange={(valor) => setStatus(valor)}
@@ -157,7 +159,7 @@ const AddTaskScreen = () => {
           <Picker.Item label="Concluída" value="Concluída" />
         </Picker>
 
-        <Text style={[estilos.label, { fontSize }]}>Data de Início</Text>
+        <Text style={[estilos.label, { fontSize, color: isDarkTheme ? '#fff' : '#333' }]}>Data de Início</Text>
         <View style={estilos.containerData}>
           <TouchableOpacity onPress={mostrarSelecionadorDataInicio}>
             <Icon name="calendar" size={24} color="#049faa" style={estilos.icone} />
@@ -165,7 +167,7 @@ const AddTaskScreen = () => {
           <TextInput style={[estilos.input, { fontSize }]} value={textoDataInicio} editable={false} />
         </View>
 
-        <Text style={[estilos.label, { fontSize }]}>Data Final</Text>
+        <Text style={[estilos.label, { fontSize, color: isDarkTheme ? '#fff' : '#333' }]}>Data Final</Text>
         <View style={estilos.containerData}>
           <TouchableOpacity onPress={mostrarSelecionadorDataFinal}>
             <Icon name="calendar" size={24} color="#049faa" style={estilos.icone} />
@@ -205,8 +207,8 @@ const AddTaskScreen = () => {
 
 const estilos = StyleSheet.create({
   scrollContainer: { flexGrow: 1 },
-  container: { flex: 1, padding: 20, backgroundColor: '#fdfdfd' },
-  label: { marginBottom: 5, color: '#333' },
+  container: { flex: 1, padding: 20 },
+  label: { marginBottom: 5 },
   input: { borderWidth: 1, borderColor: '#ddd', padding: 10, borderRadius: 5, marginBottom: 15 },
   picker: { borderWidth: 1, borderColor: '#ddd', borderRadius: 5, backgroundColor: '#fff', marginBottom: 15 },
   containerData: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },

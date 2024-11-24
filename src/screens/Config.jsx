@@ -4,9 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import openDB from "../database/db";
 import { FontContext } from '../context/FontContext';
+import { ThemeContext } from '../context/ThemeContext'; // Importa o contexto de tema
 
 export default function ConfigScreen() {
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [notifications, setNotifications] = useState(false);
   const [logado, setLogado] = useState(false);
   const [idUser, setIdUsuario] = useState('');
@@ -14,7 +14,8 @@ export default function ConfigScreen() {
   const [profileImage, setProfileImage] = useState('https://placekitten.com/200/200');
   const navigation = useNavigation();
   const db = openDB();
-  const { fontSize, increaseFontSize, decreaseFontSize } = useContext(FontContext); // Usa o contexto da fonte
+  const { fontSize, increaseFontSize, decreaseFontSize } = useContext(FontContext);
+  const { isDarkTheme, toggleTheme } = useContext(ThemeContext); // Usa o contexto de tema
 
   const selectImage = async () => {
     navigation.navigate('Galeria');
@@ -37,14 +38,12 @@ export default function ConfigScreen() {
 
   useEffect(() => {
     const verifcaConfig = async () => {
-      if (idUser) { 
+      if (idUser) {
         const config = await db.getAllAsync('SELECT * FROM config WHERE idUser = ?', [idUser]);
         if (config) {
           let notifica = config[0].notificacoes === 'true';
-          let temas = config[0].tema === 'true';
           let continuarLogado = config[0].logado === 'true';
           setNotifications(notifica);
-          setIsDarkTheme(temas);
           setLogado(continuarLogado);
         }
       }
@@ -57,8 +56,8 @@ export default function ConfigScreen() {
     const idUser = await AsyncStorage.getItem('idUser');
 
     const statement = await db.prepareAsync(
-      `INSERT INTO config (tema, logado, notificacoes,idUser) 
-       VALUES ($tema,$logado,$notificacoes,$idUsuario)`
+      `INSERT INTO config (tema, logado, notificacoes, idUser) 
+       VALUES ($tema, $logado, $notificacoes, $idUsuario)`
     );
 
     try {
@@ -113,7 +112,7 @@ export default function ConfigScreen() {
         </Text>
         <Switch
           value={isDarkTheme}
-          onValueChange={setIsDarkTheme}
+          onValueChange={toggleTheme} // Alterna o tema global
           thumbColor={isDarkTheme ? '#1E90FF' : '#000'}
         />
       </View>

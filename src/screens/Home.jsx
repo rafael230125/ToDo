@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput, Modal } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -6,8 +6,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackHandler } from 'react-native';
 import openDB from "../database/db";
-import { FontContext } from '../context/FontContext'; // Contexto para tamanho da fonte
-import { ThemeContext } from '../context/ThemeContext'; // Contexto para alternar tema
+import { FontContext } from '../context/FontContext';
+import { ThemeContext } from '../context/ThemeContext';
 
 const TelaPrincipal = () => {
   const db = openDB();
@@ -61,13 +61,27 @@ const TelaPrincipal = () => {
 
   const handleFilterChange = (filterType) => {
     setFilterOption(filterType);
+  
+    let sortedTarefas = [...tarefas];
+  
     if (filterType === 'prioridade') {
-      setTarefasFiltradas(tarefas.sort((a, b) => a.prioridade.localeCompare(b.prioridade)));
+      sortedTarefas = sortedTarefas.sort((a, b) => a.prioridade.localeCompare(b.prioridade));
     } else if (filterType === 'data') {
-      setTarefasFiltradas(tarefas.sort((a, b) => new Date(a.data) - new Date(b.data)));
+      sortedTarefas = sortedTarefas.sort((a, b) => {
+        const dateA = a.data ? new Date(a.data.replace(/-/g, '/')) : null;
+        const dateB = b.data ? new Date(b.data.replace(/-/g, '/')) : null;
+        
+        if (!dateA && !dateB) return 0; // Ambos indefinidos
+        if (!dateA) return 1;          // a sem data, move para depois
+        if (!dateB) return -1;         // b sem data, move para depois
+        
+        return dateA - dateB;          // Compara as datas normalmente
+      });
     } else if (filterType === 'status') {
-      setTarefasFiltradas(tarefas.sort((a, b) => a.status.localeCompare(b.status)));
+      sortedTarefas = sortedTarefas.sort((a, b) => a.status.localeCompare(b.status));
     }
+  
+    setTarefasFiltradas(sortedTarefas);
     setFilterMenuVisible(false);
   };
 
@@ -176,8 +190,7 @@ const TelaPrincipal = () => {
           <TouchableOpacity
             style={[
               estilos.todoItem,
-              item.id === idTarefaSelecionada && estilos.selectedItem,
-              { backgroundColor: isDarkTheme ? '#555' : '#f8f8f8' },
+              item.id === idTarefaSelecionada && estilos.selectedItem, // Aplica o estilo ao item selecionado
             ]}
             onPress={() => selecionarTarefa(item.id)}
           >

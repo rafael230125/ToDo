@@ -21,6 +21,7 @@
     "@types/react-native-sqlite-storage": "^6.0.5",
     "expo": "~51.0.28",
     "expo-file-system": "~17.0.1",
+    "expo-font": "~12.0.10",
     "expo-media-library": "~16.0.5",
     "expo-sqlite": "~14.0.6",
     "expo-status-bar": "~1.12.1",
@@ -36,8 +37,7 @@
     "react-native-sqlite-storage": "^6.0.1",
     "react-native-vector-icons": "^10.2.0",
     "tailwindcss-react-native": "^1.7.10",
-    "todo": "file:",
-    "expo-font": "~12.0.10"
+    "todo": "file:"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

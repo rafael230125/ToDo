@@ -59,6 +59,24 @@ const TelaPrincipal = () => {
     }, [])
   );
 
+  const handleFilterChange = (filterType) => {
+    setFilterOption(filterType);
+    if (filterType === 'prioridade') {
+      setTarefasFiltradas(tarefas.sort((a, b) => a.prioridade.localeCompare(b.prioridade)));
+    } else if (filterType === 'data') {
+      setTarefasFiltradas(tarefas.sort((a, b) => new Date(a.data) - new Date(b.data)));
+    } else if (filterType === 'status') {
+      setTarefasFiltradas(tarefas.sort((a, b) => a.status.localeCompare(b.status)));
+    }
+    setFilterMenuVisible(false);
+  };
+
+  const removerFiltros = () => {
+    setTarefasFiltradas(tarefas);
+    setFilterOption(null);
+    setFilterMenuVisible(false);
+  };
+
   const handleSearch = (text) => {
     setSearchQuery(text);
     const tarefasFiltradas = tarefas.filter((tarefa) =>
@@ -127,6 +145,31 @@ const TelaPrincipal = () => {
         </TouchableOpacity>
       </View>
 
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isFilterMenuVisible}
+        onRequestClose={() => setFilterMenuVisible(false)}
+      >
+        <View style={estilos.modalContainer}>
+          <View style={estilos.modalContent}>
+            <Text style={estilos.modalTitle}>Filtrar por</Text>
+            <TouchableOpacity onPress={() => handleFilterChange('prioridade')}>
+              <Text style={estilos.modalOption}>Prioridade</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleFilterChange('data')}>
+              <Text style={estilos.modalOption}>Data Final</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleFilterChange('status')}>
+              <Text style={estilos.modalOption}>Status</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => removerFiltros()}>
+              <Text style={estilos.modalOption}>Remover Filtros</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <FlatList
         data={tarefasFiltradas}
         renderItem={({ item }) => (
@@ -182,20 +225,164 @@ const TelaPrincipal = () => {
 };
 
 const estilos = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  header: { padding: 10, backgroundColor: '#51c1f5', alignItems: 'center' },
-  profileContainer: { flexDirection: 'row', alignItems: 'center' },
-  logoImage: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
-  profileName: { fontWeight: 'bold', color: 'white' },
-  headerTitle: { fontWeight: 'bold', color: 'white', marginTop: 10 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  searchInput: { flex: 1, padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 5 },
-  todoList: { paddingHorizontal: 10 },
-  todoItem: { flexDirection: 'row', alignItems: 'center', padding: 10, marginVertical: 5, borderRadius: 8 },
-  selectedItem: { borderWidth: 1, borderColor: '#000' },
-  bottomNav: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10, backgroundColor: '#51c1f5' },
-  navButton: { justifyContent: 'center', alignItems: 'center', width: 50, height: 50 },
-  navButtonCenter: { backgroundColor: '#FFC107', width: 70, height: 70, borderRadius: 35 },
+  container: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+  },
+  header: {
+    padding: 20,
+    backgroundColor: '#51c1f5',
+    alignItems: 'center',
+  },
+  profileContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginTop: 20,
+  },
+  leftContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  logoImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 2,
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    fontSize: 16,
+  },
+  filterList: {
+    marginLeft: 10,
+  },
+  todoList: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  todoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: '#f8f8f8',
+    marginBottom: 10,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  selectedItem: {
+    backgroundColor: '#757f88',
+  },
+  todoTextContainer: {
+    marginLeft: 15,
+  },
+  todoText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  todoDesc: {
+    fontSize: 16,
+    color: '#757575',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 4,
+    borderRadius: 30,
+    backgroundColor: '#51c1f5',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  navButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 50,
+    height: 50,
+    backgroundColor: '#51c1f5',
+    borderRadius: 25,
+    marginTop: 10,
+  },
+  navButtonCenter: {
+    backgroundColor: '#FFC107',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  modalOption: {
+    fontSize: 16,
+    color: '#000',
+    textAlign: 'center',
+    paddingVertical: 10,
+    width: '100%',
+  },
+  modalOptionContainer: {
+    width: '100%',
+    borderRadius: 5,
+    marginVertical: 5,
+  },
+  modalOptionSelected: {
+    backgroundColor: '#51c1f5',
+  },
+  modalCancel: {
+    fontSize: 16,
+    color: '#F44336',
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  concluidaItem: {
+    backgroundColor: '#d3d3d3',
+    opacity: 0.7,
+  },
 });
 
 export default TelaPrincipal;

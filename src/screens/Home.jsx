@@ -101,7 +101,11 @@ const TelaPrincipal = () => {
   };
 
   const selecionarTarefa = (id) => {
-    setIdTarefaSelecionada(id === idTarefaSelecionada ? null : id);
+    setIdTarefaSelecionada((prevId) => {
+      const novoId = prevId === id ? null : id;
+      console.log(`Tarefa selecionada: ${novoId}`); // Verifique o ID da tarefa selecionada
+      return novoId;
+    });
   };
 
   async function atualizarLista() {
@@ -185,25 +189,44 @@ const TelaPrincipal = () => {
       </Modal>
 
       <FlatList
-        data={tarefasFiltradas}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              estilos.todoItem,
-              item.id === idTarefaSelecionada && estilos.selectedItem, // Aplica o estilo ao item selecionado
-            ]}
-            onPress={() => selecionarTarefa(item.id)}
-          >
-            {obterIconePrioridade(item.prioridade)}
-            <View>
-              <Text style={{ color: isDarkTheme ? '#fff' : '#000', fontSize }}>{item.nome}</Text>
-              <Text style={{ color: isDarkTheme ? '#aaa' : '#757575', fontSize }}>{item.descricao}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={estilos.todoList}
+  data={tarefasFiltradas} // Usa as tarefas filtradas para exibição
+  renderItem={({ item }) => (
+    <TouchableOpacity
+      style={[
+        estilos.todoItem,
+        item.id === idTarefaSelecionada && estilos.selectedItem, // Estilo para item selecionado
+        item.status?.toLowerCase() === 'concluida' && estilos.concluidaItem, // Estilo para tarefas concluídas
+      ]}
+      onPress={() => selecionarTarefa(item.id)} // Atualiza o estado para a tarefa selecionada
+    >
+      {/* Ícone de Prioridade */}
+      <FontAwesome
+        name="exclamation"
+        size={24}
+        color={
+          item.prioridade === 'Alta'
+            ? '#F44336'
+            : item.prioridade === 'Média'
+            ? '#FF9800'
+            : '#4CAF50'
+        }
+        style={estilos.priorityIcon}
       />
+      {/* Conteúdo da Tarefa */}
+      <View style={estilos.todoContent}>
+        <Text style={estilos.todoText}>{item.nome || 'Tarefa sem nome'}</Text>
+        <Text style={estilos.todoDesc}>{item.descricao || 'Sem descrição'}</Text>
+        <Text style={estilos.todoTime}>
+          Data final: {item.dataFinal || 'Sem data'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  )}
+  keyExtractor={(item) => item.id.toString()} // Identifica cada item por ID
+  contentContainerStyle={estilos.todoList}
+/>
+
+
 
       <View style={estilos.bottomNav}>
         <TouchableOpacity style={estilos.navButton}>
@@ -245,7 +268,9 @@ const estilos = StyleSheet.create({
   header: {
     padding: 20,
     backgroundColor: '#51c1f5',
-    alignItems: 'center',
+    flexDirection: 'row', // Para alinhar os elementos horizontalmente
+    alignItems: 'center', // Centraliza verticalmente
+    justifyContent: 'space-between', // Separa os itens entre os extremos
   },
   profileContainer: {
     flexDirection: 'row',
@@ -302,15 +327,15 @@ const estilos = StyleSheet.create({
   todoItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#fff', // Cor padrão
     padding: 15,
-    backgroundColor: '#f8f8f8',
-    marginBottom: 10,
+    marginVertical: 8,
     borderRadius: 10,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   selectedItem: {
     backgroundColor: '#757f88',
@@ -395,6 +420,9 @@ const estilos = StyleSheet.create({
   concluidaItem: {
     backgroundColor: '#d3d3d3',
     opacity: 0.7,
+  },
+  selectedItem: {
+    backgroundColor: '#e0e0e0', // Cor para a tarefa selecionada
   },
 });
 

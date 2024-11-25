@@ -1,5 +1,10 @@
 # ToDo - README
 
+## Apresentação do projeto Slides:
+ ``` 
+    https://www.canva.com/design/DAGXakI3RUs/AAe6R3RIdwpE_GTo5Ajikg/edit?utm_content=DAGXakI3RUs&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+ ```
+
 ## 💻 Sobre o Projeto
 
 **ToDo** é um aplicativo mobile desenvolvido para ajudá-lo a organizar e priorizar suas tarefas diárias de maneira simples e eficiente. Com um design minimalista, ele permite que você cadastre, altere, exclua, e receba alertas e lembretes de vencimento de suas tarefas. Além disso, você pode customizar o tema da interface para clareza e conforto visual, com opções de tema claro e escuro.
@@ -77,9 +82,4 @@ O aplicativo **ToDo** oferece uma gama de funcionalidades para facilitar o geren
     npx expo start
     ```
 ---
-
-**Apresentação do projeto Slides:**
- ``` 
-    https://www.canva.com/design/DAGXakI3RUs/AAe6R3RIdwpE_GTo5Ajikg/edit?utm_content=DAGXakI3RUs&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
- ```
 Obrigado por utilizar o **ToDo**! Organize suas tarefas de forma simples e eficiente!

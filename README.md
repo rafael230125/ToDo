@@ -78,4 +78,7 @@ O aplicativo **ToDo** oferece uma gama de funcionalidades para facilitar o geren
     ```
 ---
 
+ ```Apresentação do projeto Slides:
+    https://www.canva.com/design/DAGXakI3RUs/AAe6R3RIdwpE_GTo5Ajikg/edit?utm_content=DAGXakI3RUs&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+ ```
 Obrigado por utilizar o **ToDo**! Organize suas tarefas de forma simples e eficiente!

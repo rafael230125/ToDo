@@ -1,10 +1,11 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput, Modal } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BackHandler } from 'react-native';
+import { BackHandler, Alert } from 'react-native'; 
+import { Modal } from 'react-native';
 import openDB from "../database/db";
 import { FontContext } from '../context/FontContext';
 import { ThemeContext } from '../context/ThemeContext';
@@ -12,14 +13,13 @@ import { ThemeContext } from '../context/ThemeContext';
 const TelaPrincipal = () => {
   const db = openDB();
   const navigation = useNavigation();
-  const [tarefas, setTarefas] = useState([]);
-  const [tarefasFiltradas, setTarefasFiltradas] = useState([]);
+  const [tarefas,             setTarefas]             = useState([]);
+  const [tarefasFiltradas,    setTarefasFiltradas]    = useState([]); 
   const [idTarefaSelecionada, setIdTarefaSelecionada] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [nomeUser, setUsuario] = useState('');
-  const [filterOption, setFilterOption] = useState(null);
-  const [isFilterMenuVisible, setFilterMenuVisible] = useState(false);
-
+  const [searchQuery,         setSearchQuery]         = useState('');  
+  const [nomeUser,            setUsuario]             = useState('');  
+  const [filterOption,        setFilterOption]        = useState(null);
+  const [isFilterMenuVisible, setFilterMenuVisible]   = useState(false);
   const { fontSize } = useContext(FontContext);
   const { isDarkTheme } = useContext(ThemeContext);
 
@@ -27,7 +27,7 @@ const TelaPrincipal = () => {
     React.useCallback(() => {
       const handleBackPress = () => {
         BackHandler.exitApp();
-        return true;
+        return true; 
       };
 
       BackHandler.addEventListener("hardwareBackPress", handleBackPress);
@@ -38,92 +38,58 @@ const TelaPrincipal = () => {
   useFocusEffect(
     React.useCallback(() => {
       async function buscarTarefas() {
-        const idUsuario = await AsyncStorage.getItem('idUser');
-        const dadosUsu = await db.getAllAsync(
-          `SELECT nome FROM usuario WHERE id = ?`,
-          [idUsuario]
-        );
-
-        setUsuario(dadosUsu[0]?.nome || '');
-        const todasAsLinhas = await db.getAllAsync(
-          `SELECT * FROM tarefas WHERE idUser = ? AND status = "Pendente"`,
-          [idUsuario]
-        );
+        const idUsuario = await AsyncStorage.getItem('idUser');        
+        const dadosUsu = await db.getAllAsync(`  SELECT nome FROM usuario WHERE id = ?`, [idUsuario]); 
+        setUsuario(dadosUsu[0].nome);    
+        const todasAsLinhas = await db.getAllAsync(`  SELECT * 
+                                                      FROM tarefas 
+                                                      WHERE idUser = ?
+                                                      AND status = "Pendente"`,
+                                                      [idUsuario]);
 
         setTarefas(todasAsLinhas);
-        setTarefasFiltradas(todasAsLinhas);
+        setTarefasFiltradas(todasAsLinhas);        
       }
-
       setSearchQuery('');
       buscarTarefas();
     }, [])
   );
 
-  const handleFilterChange = (filterType) => {
-    setFilterOption(filterType);
-  
-    let sortedTarefas = [...tarefas];
-  
-    if (filterType === 'prioridade') {
-      sortedTarefas = sortedTarefas.sort((a, b) => a.prioridade.localeCompare(b.prioridade));
-    } else if (filterType === 'data') {
-      sortedTarefas = sortedTarefas.sort((a, b) => {
-        const dateA = a.data ? new Date(a.data.replace(/-/g, '/')) : null;
-        const dateB = b.data ? new Date(b.data.replace(/-/g, '/')) : null;
-        
-        if (!dateA && !dateB) return 0; // Ambos indefinidos
-        if (!dateA) return 1;          // a sem data, move para depois
-        if (!dateB) return -1;         // b sem data, move para depois
-        
-        return dateA - dateB;          // Compara as datas normalmente
-      });
-    } else if (filterType === 'status') {
-      sortedTarefas = sortedTarefas.sort((a, b) => a.status.localeCompare(b.status));
-    }
-  
-    setTarefasFiltradas(sortedTarefas);
-    setFilterMenuVisible(false);
-  };
-
-  const removerFiltros = () => {
-    setTarefasFiltradas(tarefas);
-    setFilterOption(null);
-    setFilterMenuVisible(false);
-  };
-
+  // Função para filtrar tarefas com base no texto da pesquisa
   const handleSearch = (text) => {
     setSearchQuery(text);
     const tarefasFiltradas = tarefas.filter((tarefa) =>
-      tarefa.nome.toLowerCase().includes(text.toLowerCase()) ||
-      tarefa.descricao.toLowerCase().includes(text.toLowerCase())
+      tarefa.nome.toLowerCase().includes(text.toLowerCase()) || 
+      tarefa.descricao.toLowerCase().includes(text.toLowerCase()) // Filtra por nome ou descrição
     );
-    setTarefasFiltradas(tarefasFiltradas);
+    setTarefasFiltradas(tarefasFiltradas); // Atualiza as tarefas filtradas
   };
 
+  // Função para selecionar/deselecionar tarefa
   const selecionarTarefa = (id) => {
-    setIdTarefaSelecionada((prevId) => {
-      const novoId = prevId === id ? null : id;
-      console.log(`Tarefa selecionada: ${novoId}`); // Verifique o ID da tarefa selecionada
-      return novoId;
-    });
+    setIdTarefaSelecionada(id === idTarefaSelecionada ? null : id);
   };
 
   async function atualizarLista() {
     const idUsuario = await AsyncStorage.getItem('idUser');
-    const todasAsLinhas = await db.getAllAsync(
-      `SELECT * FROM tarefas WHERE idUser = ? AND status = "Pendente"`,
-      [idUsuario]
-    );
+    const todasAsLinhas = await db.getAllAsync(`  
+      SELECT *
+      FROM tarefas 
+      WHERE idUser = ?
+      AND status = "Pendente"`,
+      [idUsuario]);
 
     setTarefas(todasAsLinhas);
-    setTarefasFiltradas(todasAsLinhas);
+    setTarefasFiltradas(todasAsLinhas); 
   }
 
   const excluirTarefa = async () => {
+    console.log(idTarefaSelecionada);
     if (idTarefaSelecionada !== null) {
-      await db.runAsync(`DELETE FROM tarefas WHERE id = ?`, [idTarefaSelecionada]);
+      await db.execAsync(`DELETE FROM tarefas WHERE id = $idTarefaSelecionada`, {id: idTarefaSelecionada});
+
       setTarefas(tarefas.filter(tarefa => tarefa.id !== idTarefaSelecionada));
-      setTarefasFiltradas(tarefasFiltradas.filter(tarefa => tarefa.id !== idTarefaSelecionada));
+      setTarefasFiltradas(tarefasFiltradas.filter(tarefa => tarefa.id !== idTarefaSelecionada)); // Remove da lista filtrada
       setIdTarefaSelecionada(null);
     }
   };
@@ -131,29 +97,98 @@ const TelaPrincipal = () => {
   const obterIconePrioridade = (prioridade) => {
     switch (prioridade) {
       case 'Baixa':
-        return <FontAwesome name="exclamation" size={24} color="#4CAF50" />;
+        return <FontAwesome name="exclamation" size={24} color="#4CAF50" />; // Verde
       case 'Média':
-        return <FontAwesome name="exclamation" size={24} color="#FF9800" />;
+        return <FontAwesome name="exclamation" size={24} color="#FF9800" />; // Laranja
       case 'Alta':
-        return <FontAwesome name="exclamation" size={24} color="#F44336" />;
+        return <FontAwesome name="exclamation" size={24} color="#F44336" />; // Vermelho
       default:
-        return <FontAwesome name="question-circle" size={24} color="#757575" />;
+        return <FontAwesome name="question-circle" size={24} color="#757575" />; // Cinza para casos indefinidos
     }
   };
 
+
+  const applyFilters = (text = searchQuery, option = filterOption) => {
+    let filteredTasks = tarefas;
+  
+    // Filtro por texto (nome ou descrição)
+    if (text) {
+      filteredTasks = filteredTasks.filter((tarefa) =>
+        tarefa.nome.toLowerCase().includes(text.toLowerCase()) ||
+        tarefa.descricao.toLowerCase().includes(text.toLowerCase())
+      );
+    }
+  
+    // Filtro por prioridade
+    if (option === 'prioridade') {
+      filteredTasks = filteredTasks.sort((a, b) => {
+        const priorityOrder = { 'Alta': 1, 'Média': 2, 'Baixa': 3 };
+        return priorityOrder[a.prioridade] - priorityOrder[b.prioridade];
+      });
+  
+    // Filtro por data
+    } else if (option === 'data') {
+      const hoje = new Date();
+      filteredTasks = filteredTasks
+        .filter((tarefa) => converterParaDate(tarefa.dataFinal) <= hoje)
+        .sort((a, b) => converterParaDate(a.dataFinal) - converterParaDate(b.dataFinal));
+  
+    // Filtro por status
+    } else if (option === 'status') {
+      Concluidas();
+      // filteredTasks = filteredTasks.filter((tarefa) => tarefa.status === 'Concluida');
+    }
+  
+    setTarefasFiltradas(filteredTasks);
+  };
+
+  const  Concluidas = async () => {
+    const idUsuario = await AsyncStorage.getItem('idUser'); 
+    const todasAsLinhas = await db.getAllAsync(`  SELECT * 
+                                                  FROM tarefas 
+                                                  WHERE idUser = ?
+                                                  AND status = "Concluida"`,
+                                                  [idUsuario]);
+
+    setTarefas(todasAsLinhas);
+    setTarefasFiltradas(todasAsLinhas); 
+  };
+
+  const converterParaDate = (dataString) => {
+    const [dia, mes, ano] = dataString.split('/').map(Number);
+    return new Date(ano, mes - 1, dia);
+  };
+
+  const handleFilterChange = (option) => {
+    setFilterOption(option);
+    applyFilters(searchQuery, option);
+  };
+
+  const removerFiltros = () => {
+    setSearchQuery(''); 
+    setFilterOption(null); 
+    setTarefasFiltradas(tarefas); 
+    atualizarLista();
+  };
+  
   return (
-    <View style={[estilos.container, { backgroundColor: isDarkTheme ? '#333' : '#fff' }]}>
-      <View style={estilos.header}>
+    <View style={[estilos.container,{ backgroundColor: isDarkTheme ? '#333' : '#fff' }]}>
+      <View style={[estilos.header, { color: isDarkTheme ? '#fff' : '#333' }]}>
         <View style={estilos.profileContainer}>
-          <Image source={require('../images/favicon.png')} style={estilos.logoImage} />
-          <Text style={[estilos.profileName, { fontSize }]}>{nomeUser}</Text>
+          <View style={estilos.leftContainer}>
+            <Image
+              source={require('../images/favicon.png')}
+              style={estilos.logoImage}
+            />
+            <Text style={[estilos.headerTitle, { fontSize }]}>{nomeUser}</Text>
+          </View>
+          <Text style={[estilos.headerTitle, { fontSize }]}>TO-DO</Text>
         </View>
-        <Text style={[estilos.headerTitle, { fontSize }]}>TO-DO</Text>
       </View>
 
-      <View style={estilos.searchContainer}>
+      <View style={[estilos.searchContainer,{ color: isDarkTheme ? '#333' : '#fff' }]}>
         <TextInput
-          style={[estilos.searchInput, { fontSize, color: isDarkTheme ? '#fff' : '#333' }]}
+          style={[estilos.searchInput,{ fontSize ,color: isDarkTheme ? '#fff' : '#333' }]}
           placeholder="Pesquisar tarefas..."
           value={searchQuery}
           onChangeText={handleSearch}
@@ -163,70 +198,97 @@ const TelaPrincipal = () => {
         </TouchableOpacity>
       </View>
 
+      <View> 
       <Modal
         animationType="slide"
         transparent={true}
         visible={isFilterMenuVisible}
         onRequestClose={() => setFilterMenuVisible(false)}
       >
-        <View style={estilos.modalContainer}>
-          <View style={estilos.modalContent}>
-            <Text style={estilos.modalTitle}>Filtrar por</Text>
-            <TouchableOpacity onPress={() => handleFilterChange('prioridade')}>
-              <Text style={estilos.modalOption}>Prioridade</Text>
+        <View style={[estilos.modalContainer,{ color: isDarkTheme ? '#333' : '#fff' }]}>
+          <View style={[estilos.modalContent,{ backgroundColor: isDarkTheme ? '#333' : '#fff' }]}>
+            <Text style={[estilos.modalTitle,{ color: isDarkTheme ? '#fff' : '#333' }]}>Filtrar por</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setFilterMenuVisible(false);
+                handleFilterChange('prioridade');
+              }}
+              style={[
+                estilos.modalOptionContainer,
+                filterOption === 'prioridade' && estilos.modalOptionSelected, 
+              ]}
+            >
+              <Text style={[estilos.modalOption,{ color: isDarkTheme ? '#fff' : '#333' }]}>Prioridade</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleFilterChange('data')}>
-              <Text style={estilos.modalOption}>Data Final</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setFilterMenuVisible(false);
+                handleFilterChange('data');
+              }}
+              style={[
+                estilos.modalOptionContainer,
+                filterOption === 'data' && [estilos.modalOptionSelected,],
+              ]}
+            >
+              <Text style={[estilos.modalOption,{ color: isDarkTheme ? '#fff' : '#333' }]}>Data final </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleFilterChange('status')}>
-              <Text style={estilos.modalOption}>Status</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setFilterMenuVisible(false);
+                handleFilterChange('status');
+              }}
+              style={[
+                estilos.modalOptionContainer,
+                filterOption === 'status' && estilos.modalOptionSelected,
+              ]}
+            >
+              <Text style={[estilos.modalOption,{ color: isDarkTheme ? '#fff' : '#333' }]}>Concluidas </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => removerFiltros()}>
-              <Text style={estilos.modalOption}>Remover Filtros</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setFilterMenuVisible(false);
+                removerFiltros();
+              }}
+              style={[
+                estilos.modalOptionContainer,
+                filterOption === null && estilos.modalOptionSelected, 
+              ]}
+            >
+              <Text style={[estilos.modalOption,{ color: isDarkTheme ? '#fff' : '#333' }]}>Sem Filtros</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setFilterMenuVisible(false)}>
+              <Text style={estilos.modalCancel}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-
+    </View>
+      
       <FlatList
-  data={tarefasFiltradas} // Usa as tarefas filtradas para exibição
-  renderItem={({ item }) => (
-    <TouchableOpacity
-      style={[
-        estilos.todoItem,
-        item.id === idTarefaSelecionada && estilos.selectedItem, // Estilo para item selecionado
-        item.status?.toLowerCase() === 'concluida' && estilos.concluidaItem, // Estilo para tarefas concluídas
-      ]}
-      onPress={() => selecionarTarefa(item.id)} // Atualiza o estado para a tarefa selecionada
-    >
-      {/* Ícone de Prioridade */}
-      <FontAwesome
-        name="exclamation"
-        size={24}
-        color={
-          item.prioridade === 'Alta'
-            ? '#F44336'
-            : item.prioridade === 'Média'
-            ? '#FF9800'
-            : '#4CAF50'
-        }
-        style={estilos.priorityIcon}
+        data={tarefasFiltradas} // Usa as tarefas filtradas para exibição
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[estilos.todoItem, 
+                    item.id === idTarefaSelecionada && estilos.selectedItem,
+                    item.status === 'Concluida' && estilos.concluidaItem]}
+            onPress={() => selecionarTarefa(item.id)}
+          >
+            {obterIconePrioridade(item.prioridade)}
+            <View style={estilos.todoTextContainer}>
+              <Text style={estilos.todoText}>{item.nome}</Text>
+              <Text style={estilos.todoDesc}>{item.descricao}</Text>
+              <Text style={estilos.todoTime}>{item.dataFinal}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        keyExtractor={item => item.id.toString()}
+        contentContainerStyle={estilos.todoList}
       />
-      {/* Conteúdo da Tarefa */}
-      <View style={estilos.todoContent}>
-        <Text style={estilos.todoText}>{item.nome || 'Tarefa sem nome'}</Text>
-        <Text style={estilos.todoDesc}>{item.descricao || 'Sem descrição'}</Text>
-        <Text style={estilos.todoTime}>
-          Data final: {item.dataFinal || 'Sem data'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  )}
-  keyExtractor={(item) => item.id.toString()} // Identifica cada item por ID
-  contentContainerStyle={estilos.todoList}
-/>
-
-
 
       <View style={estilos.bottomNav}>
         <TouchableOpacity style={estilos.navButton}>
@@ -245,13 +307,15 @@ const TelaPrincipal = () => {
         >
           <MaterialIcons name="add" size={28} color="white" />
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[estilos.navButton, { opacity: idTarefaSelecionada ? 1 : 0.5 }]}
-          onPress={() => navigation.navigate('AddTask', { idTarefa: idTarefaSelecionada })}
+          onPress={() => navigation.navigate('AddTask', { idTarefa: idTarefaSelecionada})}
           disabled={!idTarefaSelecionada}
         >
           <MaterialIcons name="edit" size={24} color="white" />
         </TouchableOpacity>
+
         <TouchableOpacity style={estilos.navButton}>
           <MaterialIcons name="settings" onPress={() => navigation.navigate('Config')} size={24} color="white" />
         </TouchableOpacity>
@@ -268,38 +332,42 @@ const estilos = StyleSheet.create({
   header: {
     padding: 20,
     backgroundColor: '#51c1f5',
-    flexDirection: 'row', // Para alinhar os elementos horizontalmente
-    alignItems: 'center', // Centraliza verticalmente
-    justifyContent: 'space-between', // Separa os itens entre os extremos
+    alignItems: 'center',
   },
   profileContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingVertical: 10, 
     marginTop: 20,
   },
+  
   leftContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', // Coloca a imagem e o nome na horizontal
+    alignItems: 'center', // Alinha a imagem e o nome verticalmente no centro
     flex: 1,
   },
+  
   logoImage: {
-    width: 40,
+    width: 40,  // Ajuste o tamanho da imagem
     height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+    borderRadius: 20, // Torna a imagem redonda
+    marginRight: 10,  // Espaço entre a imagem e o nome
   },
+  
   profileName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: 'white', // Altere a cor se necessário
   },
+  
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
-    textAlign: 'center',
+    textAlign: 'center', // Centraliza o texto
+    // flex: 1, // Faz o título ocupar o espaço restante e manter-se centralizado
+    alignContent: 'flex-end',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -309,16 +377,17 @@ const estilos = StyleSheet.create({
     padding: 2,
     marginBottom: 10,
   },
+  filterList: {
+    marginLeft: 10,
+  },
   searchInput: {
     flex: 1,
     padding: 12,
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
+    // marginTop: 10,
     fontSize: 16,
-  },
-  filterList: {
-    marginLeft: 10,
   },
   todoList: {
     paddingHorizontal: 20,
@@ -327,18 +396,18 @@ const estilos = StyleSheet.create({
   todoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff', // Cor padrão
     padding: 15,
-    marginVertical: 8,
+    backgroundColor: '#f8f8f8',
+    marginBottom: 10,
     borderRadius: 10,
-    elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   selectedItem: {
-    backgroundColor: '#757f88',
+    backgroundColor: '#757f88', // Cor diferente para item selecionado
   },
   todoTextContainer: {
     marginLeft: 15,
@@ -347,6 +416,10 @@ const estilos = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#000000',
+  },
+  todoTime: {
+    fontSize: 12,
+    color: '#757575',
   },
   todoDesc: {
     fontSize: 16,
@@ -376,12 +449,23 @@ const estilos = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
+    marginTop: 0,
   },
+
+  modalOptionContainer: {
+    padding: 4,
+    borderRadius: 5,
+    marginVertical: 5,
+  },
+  modalOptionSelected: {
+    backgroundColor: '#51c1f5', // Fundo azul para item selecionado
+  },
+
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fundo transparente com escurecimento
   },
   modalContent: {
     width: '80%',
@@ -394,22 +478,12 @@ const estilos = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 1,
   },
   modalOption: {
     fontSize: 16,
     color: '#000',
     textAlign: 'center',
-    paddingVertical: 10,
-    width: '100%',
-  },
-  modalOptionContainer: {
-    width: '100%',
-    borderRadius: 5,
-    marginVertical: 5,
-  },
-  modalOptionSelected: {
-    backgroundColor: '#51c1f5',
   },
   modalCancel: {
     fontSize: 16,
@@ -418,11 +492,8 @@ const estilos = StyleSheet.create({
     textAlign: 'center',
   },
   concluidaItem: {
-    backgroundColor: '#d3d3d3',
-    opacity: 0.7,
-  },
-  selectedItem: {
-    backgroundColor: '#e0e0e0', // Cor para a tarefa selecionada
+    backgroundColor: '#d3d3d3', 
+    opacity: 0.7, 
   },
 });
 

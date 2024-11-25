@@ -211,7 +211,7 @@ const styles = (isDarkTheme) =>
       color: isDarkTheme ? '#fff' : '#000',
     },
     fontControlsSection: {
-      marginVertical: 30,
+      marginVertical: 6,
       alignItems: 'center',
     },
     sectionTitle: {
@@ -244,8 +244,8 @@ const styles = (isDarkTheme) =>
       fontSize: 24,
     },
     saveButton: {
-      marginTop: 20,
-      backgroundColor: '#1E90FF',
+      marginTop: 8,
+      backgroundColor: '#51c1f5',
       paddingVertical: 15,
       borderRadius: 10,
       alignItems: 'center',
@@ -258,6 +258,6 @@ const styles = (isDarkTheme) =>
     saveButtonText: {
       color: '#fff',
       fontWeight: 'bold',
-      fontSize: 18,
+      fontSize: 16,
     },
   });

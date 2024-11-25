@@ -29,6 +29,7 @@ const LoginScreen = () => {
           if (manterLogado) {
             await AsyncStorage.setItem('manterLogado', 'true'); 
             await AsyncStorage.setItem('idUser', String(firstRow.id));
+            console.log(firstRow.id);
           } else {
             await AsyncStorage.removeItem('manterLogado'); 
           }

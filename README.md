@@ -74,30 +74,8 @@ O aplicativo **ToDo** oferece uma gama de funcionalidades para facilitar o geren
 3. **Inicie o projeto**:
     Execute o comando abaixo para rodar o app no seu emulador ou dispositivo físico:
     ```bash
-    expo start
+    npx expo start
     ```
-
-## 🧑‍💻 Contribua para o Projeto
-
-1. **Fork o repositório**
-2. **Crie uma branch para a sua feature**:
-    ```bash
-    git checkout -b minha-nova-feature
-    ```
-3. **Faça commits** das suas alterações:
-    ```bash
-    git commit -am 'Adiciona nova funcionalidade'
-    ```
-4. **Push para o repositório**:
-    ```bash
-    git push origin minha-nova-feature
-    ```
-5. **Abra um pull request**
-
-## 📝 Licença
-
-Este projeto está sob a [MIT License](LICENSE). 
-
 ---
 
 Obrigado por utilizar o **ToDo**! Organize suas tarefas de forma simples e eficiente!

@@ -3,16 +3,18 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } fro
 import { useNavigation } from '@react-navigation/native';
 import { TextInputMask } from 'react-native-masked-text';
 import { ToastAndroid } from 'react-native';
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import openDB from "../database/db" ;
 
 const NewUsers = () => {
   const db  =  openDB();
+  const auth = getAuth();
   const [nome, setNome] = useState(''); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [dataNasc, setDataNasc] = useState('');
-
+  const [idNovo, setIdNovo] = useState('');
   const [nameError, setNameError] = useState(false);
   const [usernameError, setUsernameError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
@@ -42,13 +44,28 @@ const NewUsers = () => {
     }  
   };
 
+  const novoUser = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, username, password);
+      const user = userCredential.user;
+      setIdNovo(user.uid);
+      return user.uid; 
+    } catch (error) {
+      const errorMessage = error.message;
+      Alert.alert('Erro', errorMessage);
+      throw error; 
+    }
+  };
+
   const addUser = async () => {
+    const userId = await novoUser(); 
+    console.log('Novo:', userId);
     const statement = await db.prepareAsync(
-      'INSERT INTO usuario (nome, usuario, senha, dataNasc) VALUES ($nome,$usuario,$senha,$dataNasc)'
+      'INSERT INTO usuario (id, nome, usuario, senha, dataNasc) VALUES ($id,$nome,$usuario,$senha,$dataNasc)'
     );
     
     try {
-      let result = await statement.executeAsync({$nome: nome ,$usuario: username, $senha: password, $dataNasc: dataNasc});
+      let result = await statement.executeAsync({$id: userId, $nome: nome ,$usuario: username, $senha: password, $dataNasc: dataNasc});
 
       Alert.alert('Cadastro', 'Novo usuário registrado com sucesso!');
     }catch (error) {
@@ -82,7 +99,7 @@ const NewUsers = () => {
 
       <TextInput
         style={[styles.input, usernameError && styles.inputError]}
-        placeholder="Usuário"
+        placeholder="Email"
         placeholderTextColor="#aaa"
         value={username}
         onChangeText={(text) => {
@@ -92,7 +109,25 @@ const NewUsers = () => {
       />
         {usernameError && <Text style={styles.errorText}>O campo Usuário é obrigatório</Text>}
 
-      <TextInput
+    
+    
+      <TextInputMask
+        type={'datetime'}
+        options={{
+          format: 'DD/MM/YYYY',
+        }}
+        value={dataNasc}
+        onChangeText={(text) => {
+          setDataNasc(text);
+          if (text) setDataNascError(false);
+        }}
+        style={[styles.input, dataNascError && styles.inputError]}
+        placeholder="Data de Nascimento "
+        placeholderTextColor="#aaa"
+      />
+        {dataNascError && <Text style={styles.errorText}>O campo Data de Nascimento é obrigatório</Text>}
+
+        <TextInput
         style={[styles.input, passwordError && styles.inputError]}
         placeholder="Senha"
         placeholderTextColor="#aaa"
@@ -118,22 +153,6 @@ const NewUsers = () => {
         }}
       />
         {confirmPasswordError && <Text style={styles.errorText}>O campo Confirmar senha é obrigatório</Text>}
-    
-      <TextInputMask
-        type={'datetime'}
-        options={{
-          format: 'DD/MM/YYYY',
-        }}
-        value={dataNasc}
-        onChangeText={(text) => {
-          setDataNasc(text);
-          if (text) setDataNascError(false);
-        }}
-        style={[styles.input, dataNascError && styles.inputError]}
-        placeholder="Data de Nascimento "
-        placeholderTextColor="#aaa"
-      />
-        {dataNascError && <Text style={styles.errorText}>O campo Data de Nascimento é obrigatório</Text>}
 
       <TouchableOpacity style={styles.button} onPress={handleSignIn}>
         <Text style={styles.buttonText}>Registrar</Text>

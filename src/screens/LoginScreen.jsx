@@ -4,10 +4,13 @@ import { CheckBox } from 'react-native-elements';  // Usando o CheckBox do react
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import openDB from "../database/db";
+import firebase from '../services/firebaseConfig';
 
 const LoginScreen = () => {
   const db = openDB();
+  const auth = getAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [manterLogado, setManterLogado] = useState(false); 
@@ -15,8 +18,22 @@ const LoginScreen = () => {
   const usernameRef = useRef(null);
   const passwordRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
-
   const navigation = useNavigation();
+
+
+  const LoginUser = () => {
+    signInWithEmailAndPassword(auth, username, password)
+    .then((userCredential) => {
+     
+      const user = userCredential.user;
+      navigation.navigate('Home',{id: user.uid});
+    })
+    .catch((error) => {
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      Alert.alert('Erro', errorMessage);
+    });
+  };
 
   const validarUsuario = async () => {
     try {
@@ -102,7 +119,7 @@ const LoginScreen = () => {
         <Text style={styles.textoCheckbox}>Manter conectado?</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={validarUsuario}>
+      <TouchableOpacity style={styles.button} onPress={LoginUser}>
         <Text style={styles.buttonText}>Entrar</Text>
       </TouchableOpacity>
 

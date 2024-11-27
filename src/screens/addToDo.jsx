@@ -16,6 +16,7 @@ const AddTaskScreen = () => {
   const navegacao = useNavigation();
   const route = useRoute();
   const { idTarefa } = route.params || {};
+  const { idUsu } = route.params || {};
 
   const [dataInicio, setDataInicio] = useState(new Date());
   const [dataFinal, setDataFinal] = useState(new Date());
@@ -30,12 +31,12 @@ const AddTaskScreen = () => {
   const [textoDataFinal, setTextoDataFinal] = useState(dataFinal.toLocaleDateString('pt-BR'));
   const [idUser, setidUser] = useState('');
 
-  const { fontSize } = useContext(FontContext); // Usa o tamanho da fonte do contexto
-  const { isDarkTheme } = useContext(ThemeContext); // Usa o estado do tema global
+  const { fontSize } = useContext(FontContext); 
+  const { isDarkTheme } = useContext(ThemeContext); 
 
   useEffect(() => {
     const fetchIdUser = async () => {
-      const idUsuario = await AsyncStorage.getItem('idUser');
+      const idUsuario = await idUsu;
       setidUser(idUsuario);
     };
 
@@ -44,6 +45,7 @@ const AddTaskScreen = () => {
 
   useEffect(() => {
     const editTarefa = async () => {
+      console.log(idUser);
       if (idTarefa && idUser) {
         const tarefaEdit = await db.getAllAsync('SELECT * FROM tarefas WHERE id = ? AND idUser = ?', [idTarefa, idUser]);
 
@@ -79,7 +81,7 @@ const AddTaskScreen = () => {
   const mostrarSelecionadorDataFinal = () => setMostrarDataFinal(true);
 
   const addNova = async () => {
-    const idUser = await AsyncStorage.getItem('idUser');
+    // const idUser = await AsyncStorage.getItem('idUser');
     const statement = await db.prepareAsync(
       `INSERT INTO tarefas (nome, descricao, dataInicial, dataFinal, prioridade, status, idUser) 
        VALUES ($nome, $descricao, $dataInicial, $dataFinal, $prioridade, $status, $idUsuario)`

@@ -7,7 +7,7 @@ import AddTaskScreen from './src/screens/addToDo';
 import LoginScreen from './src/screens/LoginScreen';
 import NewUsers from './src/screens/NewUser';
 import ConfigScreen from './src/screens/Config';
-import Galeria from './src/componentes/Galeria';
+import Galeria from './src/screens/Galeria.jsx';
 import { FontProvider } from './src/context/FontContext'; // Ajuste conforme o local do arquivo
 import { ThemeProvider } from './src/context/ThemeContext.js'; // Importando o ThemeContext
 

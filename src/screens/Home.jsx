@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackHandler, Alert } from 'react-native'; 
@@ -22,6 +22,8 @@ const TelaPrincipal = () => {
   const [isFilterMenuVisible, setFilterMenuVisible]   = useState(false);
   const { fontSize } = useContext(FontContext);
   const { isDarkTheme } = useContext(ThemeContext);
+  const route = useRoute();
+  const { id } = route.params || {};
 
   useFocusEffect(
     React.useCallback(() => {
@@ -38,22 +40,28 @@ const TelaPrincipal = () => {
   useFocusEffect(
     React.useCallback(() => {
       async function buscarTarefas() {
-        const idUsuario = await AsyncStorage.getItem('idUser');        
-        const dadosUsu = await db.getAllAsync(`  SELECT nome FROM usuario WHERE id = ?`, [idUsuario]); 
-        setUsuario(dadosUsu[0].nome);    
-        const todasAsLinhas = await db.getAllAsync(`  SELECT * 
-                                                      FROM tarefas 
-                                                      WHERE idUser = ?
-                                                      AND status = "Pendente"`,
-                                                      [idUsuario]);
-
-        setTarefas(todasAsLinhas);
-        setTarefasFiltradas(todasAsLinhas);        
+        try {
+          const dadosUsu = await db.getAllAsync(`SELECT * FROM usuario `, [id]);
+          if (dadosUsu && dadosUsu.length > 0) {
+            setUsuario(dadosUsu[0].nome);
+          } else {
+            console.warn("Nenhum usuário encontrado para o ID:", id);
+          }
+  
+          const todasAsLinhas = await db.getAllAsync(
+            `SELECT * FROM tarefas WHERE idUser = ? AND status = "Pendente"`,
+            [id]
+          );
+          setTarefas(todasAsLinhas);
+          setTarefasFiltradas(todasAsLinhas);
+        } catch (error) {
+          console.error("Erro ao buscar tarefas ou usuário:", error);
+        }
       }
-      setSearchQuery('');
       buscarTarefas();
-    }, [])
+    }, [id])
   );
+  
 
   // Função para filtrar tarefas com base no texto da pesquisa
   const handleSearch = (text) => {
@@ -71,13 +79,13 @@ const TelaPrincipal = () => {
   };
 
   async function atualizarLista() {
-    const idUsuario = await AsyncStorage.getItem('idUser');
+    // const idUsuario = await AsyncStorage.getItem('idUser');
     const todasAsLinhas = await db.getAllAsync(`  
       SELECT *
       FROM tarefas 
       WHERE idUser = ?
       AND status = "Pendente"`,
-      [idUsuario]);
+      [id]);
 
     setTarefas(todasAsLinhas);
     setTarefasFiltradas(todasAsLinhas); 
@@ -143,12 +151,12 @@ const TelaPrincipal = () => {
   };
 
   const  Concluidas = async () => {
-    const idUsuario = await AsyncStorage.getItem('idUser'); 
+    // const idUsuario = await AsyncStorage.getItem('idUser'); 
     const todasAsLinhas = await db.getAllAsync(`  SELECT * 
                                                   FROM tarefas 
                                                   WHERE idUser = ?
                                                   AND status = "Concluida"`,
-                                                  [idUsuario]);
+                                                  [id]);
 
     setTarefas(todasAsLinhas);
     setTarefasFiltradas(todasAsLinhas); 
@@ -303,21 +311,21 @@ const TelaPrincipal = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[estilos.navButton, estilos.navButtonCenter]}
-          onPress={() => navigation.navigate('AddTask')}
+          onPress={() => navigation.navigate('AddTask',{idUsu: id})}
         >
           <MaterialIcons name="add" size={28} color="white" />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[estilos.navButton, { opacity: idTarefaSelecionada ? 1 : 0.5 }]}
-          onPress={() => navigation.navigate('AddTask', { idTarefa: idTarefaSelecionada})}
+          onPress={() => navigation.navigate('AddTask', {idUsu: id, idTarefa: idTarefaSelecionada})}
           disabled={!idTarefaSelecionada}
         >
           <MaterialIcons name="edit" size={24} color="white" />
         </TouchableOpacity>
 
         <TouchableOpacity style={estilos.navButton}>
-          <MaterialIcons name="settings" onPress={() => navigation.navigate('Config')} size={24} color="white" />
+          <MaterialIcons name="settings" onPress={() => navigation.navigate('Config', {idUsu: id})} size={24} color="white" />
         </TouchableOpacity>
       </View>
     </View>

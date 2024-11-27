@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Button, Text, SafeAreaView, ScrollView, StyleSheet, Image, View, TouchableOpacity, Alert, Platform } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import openDB from "../database/db";
+import { useRoute } from '@react-navigation/native';
 
 export default function Galeria({ navigation }) {
   const [albums, setAlbums] = useState([]);
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+  const route = useRoute();
+  const { uid } = route.params || {}; // Recebe o uid
+
+  useEffect(() => {
+    if (!uid) {
+      Alert.alert("Erro", "ID de usuário não foi recebido. Retornando...");
+      navigation.goBack();
+    }
+  }, [uid]);
 
   // Atualiza os álbuns sempre que a permissão é concedida ou o botão é pressionado
   const getAlbums = async () => {
@@ -32,7 +41,7 @@ export default function Galeria({ navigation }) {
       <ScrollView>
         {albums.length > 0 ? (
           albums.map((album) => (
-            <AlbumEntry key={album.id} album={album} navigation={navigation} />
+            <AlbumEntry key={album.id} album={album} navigation={navigation} uid={uid} />
           ))
         ) : (
           <Text style={styles.noAlbumsText}>Nenhum álbum encontrado.</Text>
@@ -42,7 +51,7 @@ export default function Galeria({ navigation }) {
   );
 }
 
-function AlbumEntry({ album, navigation }) {
+function AlbumEntry({ album, navigation, uid }) {
   const [assets, setAssets] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -60,11 +69,17 @@ function AlbumEntry({ album, navigation }) {
   };
 
   const handleSaveAndNavigate = async () => {
-    const db = openDB();
+    if (!uid) {
+      Alert.alert('Erro', 'ID de usuário inválido. Não foi possível salvar.');
+      return;
+    }
+
     if (!selectedImage) {
       Alert.alert('Atenção', 'Por favor, selecione uma imagem antes de salvar.');
       return;
     }
+
+    const db = openDB();
 
     try {
       // Converter imagem para Base64
@@ -72,18 +87,14 @@ function AlbumEntry({ album, navigation }) {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Salvar no SQLite
-      const idUsuario = await AsyncStorage.getItem('idUser');
-      await db.runAsync(
-        "UPDATE usuario SET foto = ? WHERE id = ?",
-        [base64Image, idUsuario]
-      );
+      console.log(uid)
+      await db.runAsync("UPDATE usuario SET foto = ? WHERE id = ?", [base64Image, uid]);
 
       Alert.alert('Sucesso', 'Imagem salva com sucesso!');
       navigation.goBack();
     } catch (error) {
-      console.error('Erro ao converter para Base64:', error);
-      Alert.alert('Erro', 'Não foi possível processar a imagem.');
+      console.error('Erro ao salvar imagem:', error);
+      Alert.alert('Erro', 'Não foi possível salvar a imagem.');
     }
   };
 
@@ -143,12 +154,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   image: {
-    width: 100, // Aumenta o tamanho das imagens
+    width: 100,
     height: 100,
     borderRadius: 8,
   },
   selectedImage: {
-    borderColor: 'blue', // Destaque para a imagem selecionada
+    borderColor: 'blue',
   },
   saveButtonContainer: {
     marginTop: 10,

@@ -1,15 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import HomeScreen from './src/screens/Home';
-import AddTaskScreen from './src/screens/addToDo';
-import LoginScreen from './src/screens/LoginScreen';
-import NewUsers from './src/screens/NewUser';
-import ConfigScreen from './src/screens/Config';
-import Galeria from './src/screens/Galeria.jsx';
-import { FontProvider } from './src/context/FontContext'; // Ajuste conforme o local do arquivo
-import { ThemeProvider } from './src/context/ThemeContext.js'; // Importando o ThemeContext
+import { FontProvider } from './src/context/FontContext';
+import { ThemeProvider } from './src/context/ThemeContext.js';
+
+// Lazy loading de telas pesadas
+const HomeScreen = React.lazy(() => import('./src/screens/Home/HomeScreen').then(module => ({ default: module.default || module.HomeScreen })));
+const AddTaskScreen = React.lazy(() => import('./src/screens/addToDo'));
+const LoginScreen = React.lazy(() => import('./src/screens/LoginScreen'));
+const NewUsers = React.lazy(() => import('./src/screens/NewUser'));
+const ConfigScreen = React.lazy(() => import('./src/screens/Config'));
+const Galeria = React.lazy(() => import('./src/screens/Galeria.jsx'));
+
+// Loading component
+const Loading = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <ActivityIndicator size="large" color="#51c1f5" />
+  </View>
+);
 
 const Stack = createStackNavigator();
 
@@ -37,46 +47,48 @@ export default function App() {
     carregando ? null : (
       <ThemeProvider>
         <FontProvider>
-          <NavigationContainer>
-            <Stack.Navigator initialRouteName={rotaInicial}>
-              <Stack.Screen 
-                name="Home" 
-                component={HomeScreen} 
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen 
-                name="AddTask" 
-                component={AddTaskScreen} 
-                options={{ title: 'Voltar' }} 
-              />
-              <Stack.Screen
-                name="Login" 
-                component={LoginScreen}
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen
-                name="NewUser" 
-                component={NewUsers}
-                options={{ title: 'Voltar' }} 
-              />
-              <Stack.Screen 
-                name="Config" 
-                component={ConfigScreen} 
-                options={{ title: 'Configurações' }} 
-              />
-              <Stack.Screen 
-                name="Galeria" 
-                component={Galeria} 
-                options={{
-                  title: 'Minha Galeria',
-                  headerStyle: {
-                    backgroundColor: '#333', 
-                  },
-                  headerTintColor: '#fff', 
-                }}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
+          <Suspense fallback={<Loading />}>
+            <NavigationContainer>
+              <Stack.Navigator initialRouteName={rotaInicial}>
+                <Stack.Screen 
+                  name="Home" 
+                  component={HomeScreen} 
+                  options={{ headerShown: false }} 
+                />
+                <Stack.Screen 
+                  name="AddTask" 
+                  component={AddTaskScreen} 
+                  options={{ title: 'Voltar' }} 
+                />
+                <Stack.Screen
+                  name="Login" 
+                  component={LoginScreen}
+                  options={{ headerShown: false }} 
+                />
+                <Stack.Screen
+                  name="NewUser" 
+                  component={NewUsers}
+                  options={{ title: 'Voltar' }} 
+                />
+                <Stack.Screen 
+                  name="Config" 
+                  component={ConfigScreen} 
+                  options={{ title: 'Configurações' }} 
+                />
+                <Stack.Screen 
+                  name="Galeria" 
+                  component={Galeria} 
+                  options={{
+                    title: 'Minha Galeria',
+                    headerStyle: {
+                      backgroundColor: '#333', 
+                    },
+                    headerTintColor: '#fff', 
+                  }}
+                />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </Suspense>
         </FontProvider>
       </ThemeProvider>
     )

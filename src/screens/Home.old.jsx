@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput, ActivityIndicator } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackHandler, Alert } from 'react-native'; 
 import { Modal } from 'react-native';
-import openDB from "../database/db";
 import { FontContext } from '../context/FontContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { getCurrentUser, getAllTasks, deleteTask } from '../services/firebaseService';
 
 const TelaPrincipal = () => {
-  const db = openDB();
   const navigation = useNavigation();
   const [tarefas,             setTarefas]             = useState([]);
   const [tarefasFiltradas,    setTarefasFiltradas]    = useState([]); 
@@ -24,42 +22,44 @@ const TelaPrincipal = () => {
   const { isDarkTheme } = useContext(ThemeContext);
   const route = useRoute();
   const { id } = route.params || {};
+  const [loading, setLoading] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
-      const handleBackPress = () => {
+      const onBackPress = () => {
         BackHandler.exitApp();
         return true; 
       };
 
-      BackHandler.addEventListener("hardwareBackPress", handleBackPress);
-      return () => BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => subscription.remove();
     }, [])
   );
 
   useFocusEffect(
     React.useCallback(() => {
-      async function buscarTarefas() {
+      async function buscarDados() {
         try {
-          const dadosUsu = await db.getAllAsync(`SELECT * FROM usuario `, [id]);
-          if (dadosUsu && dadosUsu.length > 0) {
-            setUsuario(dadosUsu[0].nome);
-          } else {
-            console.warn("Nenhum usuário encontrado para o ID:", id);
+          setLoading(true);
+          
+          // Buscar usuário
+          const userData = await getCurrentUser();
+          if (userData) {
+            setUsuario(userData.nome || 'Usuário');
           }
   
-          const todasAsLinhas = await db.getAllAsync(
-            `SELECT * FROM tarefas WHERE idUser = ? AND status = "Pendente"`,
-            [id]
-          );
-          setTarefas(todasAsLinhas);
-          setTarefasFiltradas(todasAsLinhas);
+          // Buscar tarefas pendentes
+          const tasks = await getAllTasks({ status: 'Pendente' });
+          setTarefas(tasks);
+          setTarefasFiltradas(tasks);
         } catch (error) {
           console.error("Erro ao buscar tarefas ou usuário:", error);
+        } finally {
+          setLoading(false);
         }
       }
-      buscarTarefas();
-    }, [id])
+      buscarDados();
+    }, [])
   );
   
 
@@ -79,26 +79,46 @@ const TelaPrincipal = () => {
   };
 
   async function atualizarLista() {
-    // const idUsuario = await AsyncStorage.getItem('idUser');
-    const todasAsLinhas = await db.getAllAsync(`  
-      SELECT *
-      FROM tarefas 
-      WHERE idUser = ?
-      AND status = "Pendente"`,
-      [id]);
-
-    setTarefas(todasAsLinhas);
-    setTarefasFiltradas(todasAsLinhas); 
+    try {
+      setLoading(true);
+      const tasks = await getAllTasks({ status: 'Pendente' });
+      setTarefas(tasks);
+      setTarefasFiltradas(tasks);
+    } catch (error) {
+      console.error("Erro ao atualizar lista:", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const excluirTarefa = async () => {
-    console.log(idTarefaSelecionada);
-    if (idTarefaSelecionada !== null) {
-      await db.execAsync(`DELETE FROM tarefas WHERE id = $idTarefaSelecionada`, {id: idTarefaSelecionada});
+    if (idTarefaSelecionada === null) return;
 
-      setTarefas(tarefas.filter(tarefa => tarefa.id !== idTarefaSelecionada));
-      setTarefasFiltradas(tarefasFiltradas.filter(tarefa => tarefa.id !== idTarefaSelecionada)); // Remove da lista filtrada
-      setIdTarefaSelecionada(null);
+    try {
+      Alert.alert(
+        'Confirmar',
+        'Deseja realmente excluir esta tarefa?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteTask(idTarefaSelecionada);
+                setTarefas(tarefas.filter(tarefa => tarefa.id !== idTarefaSelecionada));
+                setTarefasFiltradas(tarefasFiltradas.filter(tarefa => tarefa.id !== idTarefaSelecionada));
+                setIdTarefaSelecionada(null);
+                Alert.alert('Sucesso', 'Tarefa excluída com sucesso!');
+              } catch (error) {
+                Alert.alert('Erro', 'Não foi possível excluir a tarefa');
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error("Erro ao excluir tarefa:", error);
     }
   };
 
@@ -116,7 +136,7 @@ const TelaPrincipal = () => {
   };
 
 
-  const applyFilters = (text = searchQuery, option = filterOption) => {
+  const applyFilters = async (text = searchQuery, option = filterOption) => {
     let filteredTasks = tarefas;
   
     // Filtro por texto (nome ou descrição)
@@ -143,23 +163,17 @@ const TelaPrincipal = () => {
   
     // Filtro por status
     } else if (option === 'status') {
-      Concluidas();
-      // filteredTasks = filteredTasks.filter((tarefa) => tarefa.status === 'Concluida');
+      try {
+        const tasks = await getAllTasks({ status: 'Concluida' });
+        setTarefas(tasks);
+        setTarefasFiltradas(tasks);
+        return;
+      } catch (error) {
+        console.error("Erro ao buscar tarefas concluídas:", error);
+      }
     }
-  
+
     setTarefasFiltradas(filteredTasks);
-  };
-
-  const  Concluidas = async () => {
-    // const idUsuario = await AsyncStorage.getItem('idUser'); 
-    const todasAsLinhas = await db.getAllAsync(`  SELECT * 
-                                                  FROM tarefas 
-                                                  WHERE idUser = ?
-                                                  AND status = "Concluida"`,
-                                                  [id]);
-
-    setTarefas(todasAsLinhas);
-    setTarefasFiltradas(todasAsLinhas); 
   };
 
   const converterParaDate = (dataString) => {
@@ -167,9 +181,9 @@ const TelaPrincipal = () => {
     return new Date(ano, mes - 1, dia);
   };
 
-  const handleFilterChange = (option) => {
+  const handleFilterChange = async (option) => {
     setFilterOption(option);
-    applyFilters(searchQuery, option);
+    await applyFilters(searchQuery, option);
   };
 
   const removerFiltros = () => {
@@ -206,6 +220,12 @@ const TelaPrincipal = () => {
         </TouchableOpacity>
       </View>
 
+      {loading && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#51c1f5" />
+        </View>
+      )}
+      
       <View> 
       <Modal
         animationType="slide"
@@ -277,26 +297,35 @@ const TelaPrincipal = () => {
       </Modal>
     </View>
       
-      <FlatList
-        data={tarefasFiltradas} // Usa as tarefas filtradas para exibição
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[estilos.todoItem, 
-                    item.id === idTarefaSelecionada && estilos.selectedItem,
-                    item.status === 'Concluida' && estilos.concluidaItem]}
-            onPress={() => selecionarTarefa(item.id)}
-          >
-            {obterIconePrioridade(item.prioridade)}
-            <View style={estilos.todoTextContainer}>
-              <Text style={estilos.todoText}>{item.nome}</Text>
-              <Text style={estilos.todoDesc}>{item.descricao}</Text>
-              <Text style={estilos.todoTime}>{item.dataFinal}</Text>
+      {!loading && (
+        <FlatList
+          data={tarefasFiltradas}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[estilos.todoItem, 
+                      item.id === idTarefaSelecionada && estilos.selectedItem,
+                      item.status === 'Concluida' && estilos.concluidaItem]}
+              onPress={() => selecionarTarefa(item.id)}
+            >
+              {obterIconePrioridade(item.prioridade)}
+              <View style={estilos.todoTextContainer}>
+                <Text style={estilos.todoText}>{item.nome}</Text>
+                <Text style={estilos.todoDesc}>{item.descricao}</Text>
+                <Text style={estilos.todoTime}>{item.dataFinal}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+          keyExtractor={item => item.id}
+          contentContainerStyle={estilos.todoList}
+          ListEmptyComponent={
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: isDarkTheme ? '#fff' : '#333' }}>
+                Nenhuma tarefa encontrada
+              </Text>
             </View>
-          </TouchableOpacity>
-        )}
-        keyExtractor={item => item.id.toString()}
-        contentContainerStyle={estilos.todoList}
-      />
+          }
+        />
+      )}
 
       <View style={estilos.bottomNav}>
         <TouchableOpacity style={estilos.navButton}>
@@ -311,21 +340,21 @@ const TelaPrincipal = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[estilos.navButton, estilos.navButtonCenter]}
-          onPress={() => navigation.navigate('AddTask',{idUsu: id})}
+          onPress={() => navigation.navigate('AddTask')}
         >
           <MaterialIcons name="add" size={28} color="white" />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[estilos.navButton, { opacity: idTarefaSelecionada ? 1 : 0.5 }]}
-          onPress={() => navigation.navigate('AddTask', {idUsu: id, idTarefa: idTarefaSelecionada})}
+          onPress={() => navigation.navigate('AddTask', { idTarefa: idTarefaSelecionada })}
           disabled={!idTarefaSelecionada}
         >
           <MaterialIcons name="edit" size={24} color="white" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={estilos.navButton}>
-          <MaterialIcons name="settings" onPress={() => navigation.navigate('Config', {idUsu: id})} size={24} color="white" />
+        <TouchableOpacity style={estilos.navButton} onPress={() => navigation.navigate('Config')}>
+          <MaterialIcons name="settings" size={24} color="white" />
         </TouchableOpacity>
       </View>
     </View>

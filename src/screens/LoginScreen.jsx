@@ -1,67 +1,47 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
-import { CheckBox } from 'react-native-elements';  // Usando o CheckBox do react-native-elements
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, Switch } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import openDB from "../database/db";
-import firebase from '../services/firebaseConfig';
+import { auth, signInWithEmailAndPassword } from "../services/firebaseConfig";
 
 const LoginScreen = () => {
-  const db = openDB();
-  const auth = getAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [manterLogado, setManterLogado] = useState(false); 
-  const [passwordVisible, setPasswordVisible] = useState(false); 
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false); 
   const usernameRef = useRef(null);
   const passwordRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
   const navigation = useNavigation();
 
+  const LoginUser = async () => {
+    if (!username || !password) {
+      Alert.alert('Aviso', 'Preencha todos os campos!');
+      return;
+    }
 
-  const LoginUser = () => {
-    signInWithEmailAndPassword(auth, username, password)
-    .then((userCredential) => {
-     
-      const user = userCredential.user;
-      navigation.navigate('Home',{id: user.uid});
-    })
-    .catch((error) => {
-      const errorCode = error.code;
-      const errorMessage = error.message;
-      Alert.alert('Erro', errorMessage);
-    });
-  };
-
-  const validarUsuario = async () => {
     try {
-      const statement = await db.prepareAsync('SELECT * FROM usuario WHERE usuario = ?');
-      const result    = await statement.executeAsync([username]);
-      const firstRow  = await result.getFirstAsync();
-    
-      if (firstRow) {
-        if (firstRow.senha === password) {
-          if (manterLogado) {
-            await AsyncStorage.setItem('manterLogado', 'true'); 
-            await AsyncStorage.setItem('idUser', String(firstRow.id));
-            console.log(firstRow.id);
-          } else {
-            await AsyncStorage.removeItem('manterLogado'); 
-          }
-
-          navigation.navigate('Home');
-        } else {
-          Alert.alert('Aviso', 'Senha incorreta!');
-          passwordRef.current.focus();
-        }
+      setLoading(true);
+      
+      const userCredential = await signInWithEmailAndPassword(auth, username, password);
+      const user = userCredential.user;
+      
+      // Salvar preferência de manter logado
+      if (manterLogado) {
+        await AsyncStorage.setItem('manterLogado', 'true');
+        await AsyncStorage.setItem('idUser', user.uid);
       } else {
-        Alert.alert('Aviso', 'Usuário não encontrado!');
-        usernameRef.current.focus();
+        await AsyncStorage.removeItem('manterLogado');
       }
+      
+      navigation.navigate('Home', { id: user.uid });
     } catch (error) {
-      console.error("Erro ao validar o usuário:", error);
+      console.error('Erro ao fazer login:', error);
+      Alert.alert('Erro', error.message || 'Não foi possível fazer login');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,15 +92,23 @@ const LoginScreen = () => {
       </View>
 
       <View style={styles.checkboxContainer}>
-        <CheckBox style={styles.checkbox}
-          checked={manterLogado}
-          onPress={() => setManterLogado(!manterLogado)}
+        <Switch
+          value={manterLogado}
+          onValueChange={setManterLogado}
+          trackColor={{ false: '#767577', true: '#51c1f5' }}
+          thumbColor={manterLogado ? '#fff' : '#f4f3f4'}
         />
         <Text style={styles.textoCheckbox}>Manter conectado?</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={LoginUser}>
-        <Text style={styles.buttonText}>Entrar</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={LoginUser}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Entrando...' : 'Entrar'}
+        </Text>
       </TouchableOpacity>
 
       {/* Link para Sign Up */}
@@ -196,9 +184,7 @@ const styles = StyleSheet.create({
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  checkbox: {
-    alignSelf: 'center',
+    gap: 10,
   },
   button: {
     width: '100%',
@@ -222,6 +208,9 @@ const styles = StyleSheet.create({
   signUpLink: {
     color: '#51c1f5',
     fontWeight: 'bold',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });
 

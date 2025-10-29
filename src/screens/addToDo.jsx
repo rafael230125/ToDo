@@ -5,18 +5,15 @@ import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ToastAndroid } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import openDB from "../database/db";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { FontContext } from '../context/FontContext'; // Contexto para ajustar o tamanho da fonte
-import { ThemeContext } from '../context/ThemeContext'; // Contexto para alternar o tema
+import { FontContext } from '../context/FontContext';
+import { ThemeContext } from '../context/ThemeContext';
+import { getTaskById, createTask, updateTask } from '../services/firebaseService';
 
 const AddTaskScreen = () => {
-  const db = openDB();
   const navegacao = useNavigation();
   const route = useRoute();
   const { idTarefa } = route.params || {};
-  const { idUsu } = route.params || {};
 
   const [dataInicio, setDataInicio] = useState(new Date());
   const [dataFinal, setDataFinal] = useState(new Date());
@@ -29,39 +26,37 @@ const AddTaskScreen = () => {
   const [mostrarDataFinal, setMostrarDataFinal] = useState(false);
   const [textoDataInicio, setTextoDataInicio] = useState(dataInicio.toLocaleDateString('pt-BR'));
   const [textoDataFinal, setTextoDataFinal] = useState(dataFinal.toLocaleDateString('pt-BR'));
-  const [idUser, setidUser] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const { fontSize } = useContext(FontContext); 
   const { isDarkTheme } = useContext(ThemeContext); 
 
   useEffect(() => {
-    const fetchIdUser = async () => {
-      const idUsuario = await idUsu;
-      setidUser(idUsuario);
-    };
-
-    fetchIdUser();
-  }, []);
-
-  useEffect(() => {
-    const editTarefa = async () => {
-      console.log(idUser);
-      if (idTarefa && idUser) {
-        const tarefaEdit = await db.getAllAsync('SELECT * FROM tarefas WHERE id = ? AND idUser = ?', [idTarefa, idUser]);
-
-        if (tarefaEdit) {
-          setNomeTarefa(tarefaEdit[0].nome);
-          setDescricao(tarefaEdit[0].descricao);
-          setPrioridade(tarefaEdit[0].prioridade);
-          setTextoDataInicio(tarefaEdit[0].dataInicial);
-          setTextoDataFinal(tarefaEdit[0].dataFinal);
-          setModoEdicao(true);
+    const loadTask = async () => {
+      if (idTarefa) {
+        try {
+          setLoading(true);
+          const tarefa = await getTaskById(idTarefa);
+          
+          if (tarefa) {
+            setNomeTarefa(tarefa.nome || '');
+            setDescricao(tarefa.descricao || '');
+            setPrioridade(tarefa.prioridade || 'Baixa');
+            setTextoDataInicio(tarefa.dataInicial || dataInicio.toLocaleDateString('pt-BR'));
+            setTextoDataFinal(tarefa.dataFinal || dataFinal.toLocaleDateString('pt-BR'));
+            setModoEdicao(true);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar tarefa:', error);
+          ToastAndroid.show('Erro ao carregar tarefa', ToastAndroid.SHORT);
+        } finally {
+          setLoading(false);
         }
       }
     };
 
-    editTarefa();
-  }, [idTarefa, idUser]);
+    loadTask();
+  }, [idTarefa]);
 
   const aoSelecionarDataInicio = (event, selectedDate) => {
     const currentDate = selectedDate || dataInicio;
@@ -81,43 +76,60 @@ const AddTaskScreen = () => {
   const mostrarSelecionadorDataFinal = () => setMostrarDataFinal(true);
 
   const addNova = async () => {
-    // const idUser = await AsyncStorage.getItem('idUser');
-    const statement = await db.prepareAsync(
-      `INSERT INTO tarefas (nome, descricao, dataInicial, dataFinal, prioridade, status, idUser) 
-       VALUES ($nome, $descricao, $dataInicial, $dataFinal, $prioridade, $status, $idUsuario)`
-    );
+    if (!nomeTarefa.trim()) {
+      ToastAndroid.show('Nome da tarefa é obrigatório!', ToastAndroid.SHORT);
+      return;
+    }
 
     try {
-      await statement.executeAsync({
-        $nome: nomeTarefa,
-        $descricao: descricao,
-        $dataInicial: textoDataInicio,
-        $dataFinal: textoDataFinal,
-        $prioridade: prioridade,
-        $status: status,
-        $idUsuario: idUser
-      });
+      setLoading(true);
+      
+      const taskData = {
+        nome: nomeTarefa,
+        descricao: descricao,
+        dataInicial: textoDataInicio,
+        dataFinal: textoDataFinal,
+        prioridade: prioridade,
+        status: status,
+      };
 
+      await createTask(taskData);
       ToastAndroid.show('Tarefa salva com sucesso!', ToastAndroid.SHORT);
       navegacao.goBack();
     } catch (error) {
-      ToastAndroid.show('Erro:', error, ToastAndroid.SHORT);
+      console.error('Erro ao salvar tarefa:', error);
+      ToastAndroid.show('Erro ao salvar tarefa', ToastAndroid.SHORT);
     } finally {
-      await statement.finalizeAsync();
+      setLoading(false);
     }
   };
 
   const atualizarTarefa = async () => {
-    try {
-      await db.runAsync(
-        "UPDATE tarefas SET nome = ?, descricao = ?, dataInicial = ?, dataFinal = ?, prioridade = ?, status = ? WHERE id = ? AND idUser = ?",
-        [nomeTarefa, descricao, textoDataInicio, textoDataFinal, prioridade, status, idTarefa, idUser]
-      );
+    if (!nomeTarefa.trim()) {
+      ToastAndroid.show('Nome da tarefa é obrigatório!', ToastAndroid.SHORT);
+      return;
+    }
 
+    try {
+      setLoading(true);
+      
+      const taskData = {
+        nome: nomeTarefa,
+        descricao: descricao,
+        dataInicial: textoDataInicio,
+        dataFinal: textoDataFinal,
+        prioridade: prioridade,
+        status: status,
+      };
+
+      await updateTask(idTarefa, taskData);
       ToastAndroid.show('Tarefa editada com sucesso!', ToastAndroid.SHORT);
       navegacao.goBack();
     } catch (error) {
-      ToastAndroid.show(`Erro: ${error}`, ToastAndroid.SHORT);
+      console.error('Erro ao atualizar tarefa:', error);
+      ToastAndroid.show('Erro ao atualizar tarefa', ToastAndroid.SHORT);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -196,8 +208,9 @@ const AddTaskScreen = () => {
 
         <View style={estilos.bottomNav}>
           <TouchableOpacity
-            style={[estilos.navButton, estilos.navButtonCenter]}
+            style={[estilos.navButton, estilos.navButtonCenter, loading && estilos.buttonDisabled]}
             onPress={modoEdicao ? atualizarTarefa : addNova}
+            disabled={loading}
           >
             <MaterialIcons name={modoEdicao ? "edit" : "add"} size={28} color="white" />
           </TouchableOpacity>
@@ -218,6 +231,7 @@ const estilos = StyleSheet.create({
   bottomNav: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
   navButton: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#51c1f5', borderRadius: 25 },
   navButtonCenter: { backgroundColor: '#FFC107', width: 70, height: 70, borderRadius: 35 },
+  buttonDisabled: { opacity: 0.5 },
 });
 
 export default AddTaskScreen;

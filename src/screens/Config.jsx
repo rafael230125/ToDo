@@ -1,112 +1,79 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, Switch, TouchableOpacity, StyleSheet, Image, ToastAndroid, ScrollView } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-import openDB from "../database/db";
+import { useNavigation } from '@react-navigation/native';
 import { FontContext } from '../context/FontContext';
-import { ThemeContext } from '../context/ThemeContext'; // Importa o contexto de tema
+import { ThemeContext } from '../context/ThemeContext';
+import { 
+  getCurrentUser, 
+  updateUserPhoto, 
+  getUserConfig, 
+  saveUserConfig 
+} from '../services/firebaseService';
 
 export default function ConfigScreen() {
   const [notifications, setNotifications] = useState(false);
   const [logado, setLogado] = useState(false);
-  const [idUser, setIdUsuario] = useState('');
-  const [usernane, setusernane] = useState('');
-  const [profileImage, setProfileImage] = useState('https://placekitten.com/200/200');
+  const [username, setUsername] = useState('');
+  const [profileImage, setProfileImage] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
-  const db = openDB();
   const { fontSize, increaseFontSize, decreaseFontSize } = useContext(FontContext);
-  const { isDarkTheme, toggleTheme } = useContext(ThemeContext); // Usa o contexto de tema
-  const route = useRoute();
-  const { idUsu } = route.params || {};
+  const { isDarkTheme, toggleTheme } = useContext(ThemeContext);
 
   const selectImage = () => {
-    navigation.navigate('Galeria', { uid: idUsu });
+    navigation.navigate('Galeria');
   };
 
   useEffect(() => {
-    const fetchIdUser = async () => {
-      if (!idUsu) return;
-
-      // setIdUsuario(idUsu);
-      // console.log(idUsu)
+    const loadUserData = async () => {
       try {
-        const statement = await db.prepareAsync('SELECT nome, foto FROM usuario WHERE id = ?');
-        const result = await statement.executeAsync([idUsu]);
-        const firstRow = await result.getFirstAsync();
-
-        if (firstRow) {
-          setusernane(firstRow.nome);
-          setProfileImage(firstRow.foto);
+        const user = await getCurrentUser();
+        if (user) {
+          setUsername(user.nome || '');
+          setProfileImage(user.foto || '');
         }
       } catch (error) {
         console.error('Erro ao buscar dados do usuário:', error);
       }
     };
 
-    fetchIdUser();
-  }, [idUsu]);
+    loadUserData();
+  }, []);
 
   useEffect(() => {
-    const verificaConfig = async () => {
-      if (!idUsu) return;
-
+    const loadConfig = async () => {
       try {
-        const config = await db.getAllAsync('SELECT * FROM config WHERE idUser = ?', [idUsu]);
-        if (config && config.length > 0) {
-          const [firstConfig] = config;
-          setNotifications(firstConfig.notificacoes === 'true');
-          setLogado(firstConfig.logado === 'true');
+        const config = await getUserConfig();
+        if (config) {
+          setNotifications(config.notificacoes === 'true' || config.notificacoes === true);
+          setLogado(config.logado === 'true' || config.logado === true);
         }
       } catch (error) {
-        console.error('Erro ao verificar configurações:', error);
+        console.error('Erro ao carregar configurações:', error);
       }
     };
 
-    verificaConfig();
-  }, [idUsu]);
-
-  const firstInsertConfig = async () => {
-    // const idUser = await AsyncStorage.getItem('idUser');
-
-    const statement = await db.prepareAsync(
-      `INSERT INTO config (tema, logado, notificacoes, idUser) 
-       VALUES ($tema, $logado, $notificacoes, $idUsuario)`
-    );
-
-    try {
-      await statement.executeAsync({
-        $tema: String(isDarkTheme),
-        $logado: String(logado),
-        $notificacoes: String(notifications),
-        $idUsuario: idUsu
-      });
-
-      ToastAndroid.show('Nova configuração salva com sucesso!', ToastAndroid.SHORT);
-    } catch (error) {
-      ToastAndroid.show('Erro:', error, ToastAndroid.SHORT);
-    } finally {
-      await statement.finalizeAsync();
-    }
-  };
+    loadConfig();
+  }, []);
 
   const salvaConfig = async () => {
-    // const idUser = await AsyncStorage.getItem('idUser');
-    const results = await db.getAllAsync('SELECT COUNT(*) AS count FROM config');
-    const count = results[0].count;
+    try {
+      setLoading(true);
+      
+      const configData = {
+        tema: String(isDarkTheme),
+        logado: String(logado),
+        notificacoes: String(notifications),
+        fontSize: fontSize,
+      };
 
-    if (count === 0) {
-      await firstInsertConfig();
-    } else {
-      try {
-        await db.runAsync(
-          "UPDATE config SET tema = ?, logado = ?, notificacoes = ? WHERE idUser = ?",
-          [String(isDarkTheme), String(logado), String(notifications), idUsu]
-        );
-
-        ToastAndroid.show('Configurações editadas com sucesso!', ToastAndroid.SHORT);
-      } catch (error) {
-        ToastAndroid.show(`Erro: ${error}`, ToastAndroid.SHORT);
-      }
+      await saveUserConfig(configData);
+      ToastAndroid.show('Configurações salvas com sucesso!', ToastAndroid.SHORT);
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+      ToastAndroid.show('Erro ao salvar configurações', ToastAndroid.SHORT);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,7 +87,7 @@ export default function ConfigScreen() {
         <TouchableOpacity onPress={selectImage}>
           <Image source={{ uri: `data:image/jpg;base64,${profileImage}` }} style={dynamicStyles.profileImage} />
         </TouchableOpacity>
-        <Text style={[dynamicStyles.nomeUsu, { fontSize }]}>{usernane}</Text>
+        <Text style={[dynamicStyles.nomeUsu, { fontSize }]}>{username || 'Usuário'}</Text>
       </View>
 
       <View style={dynamicStyles.settingsSection}>
@@ -167,8 +134,14 @@ export default function ConfigScreen() {
         </View>
       </View>
 
-      <TouchableOpacity style={dynamicStyles.saveButton} onPress={salvaConfig}>
-        <Text style={dynamicStyles.saveButtonText}>Salvar Configurações</Text>
+      <TouchableOpacity 
+        style={[dynamicStyles.saveButton, loading && dynamicStyles.buttonDisabled]} 
+        onPress={salvaConfig}
+        disabled={loading}
+      >
+        <Text style={dynamicStyles.saveButtonText}>
+          {loading ? 'Salvando...' : 'Salvar Configurações'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -272,5 +245,8 @@ const styles = (isDarkTheme) =>
       color: '#fff',
       fontWeight: 'bold',
       fontSize: 16,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
     },
   });

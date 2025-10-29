@@ -3,27 +3,25 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } fro
 import { useNavigation } from '@react-navigation/native';
 import { TextInputMask } from 'react-native-masked-text';
 import { ToastAndroid } from 'react-native';
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import openDB from "../database/db" ;
+import { auth, createUserWithEmailAndPassword } from "../services/firebaseConfig";
+import { saveUser } from "../services/firebaseService";
 
 const NewUsers = () => {
-  const db  =  openDB();
-  const auth = getAuth();
+  const navigation = useNavigation();
   const [nome, setNome] = useState(''); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [dataNasc, setDataNasc] = useState('');
-  const [idNovo, setIdNovo] = useState('');
   const [nameError, setNameError] = useState(false);
   const [usernameError, setUsernameError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [confirmPasswordError, setConfirmPasswordError] = useState(false);
   const [dataNascError, setDataNascError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const passwordRef = useRef(null);
-  const navigation = useNavigation();
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     setNameError(!nome);
     setUsernameError(!username);
     setPasswordError(!password);
@@ -33,46 +31,44 @@ const NewUsers = () => {
     if (!nome || !username || !password || !confirmPassword || !dataNasc) {
       Alert.alert('Aviso', 'Campos obrigatórios, favor preencher');
       return;
-    }else {
-        if (confirmPassword === password) {
-          addUser();
-          navigation.goBack();
-        }else {
-          Alert.alert('Aviso', 'Senhas não conferem!');
-          passwordRef.current.focus();
-        }
-    }  
+    }
+
+    if (confirmPassword !== password) {
+      Alert.alert('Aviso', 'Senhas não conferem!');
+      passwordRef.current.focus();
+      return;
+    }
+
+    await registerUser();
   };
 
-  const novoUser = async () => {
+  const registerUser = async () => {
     try {
+      setLoading(true);
+      
+      // 1. Criar usuário no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, username, password);
       const user = userCredential.user;
-      setIdNovo(user.uid);
-      return user.uid; 
+      
+      // 2. Salvar dados adicionais do usuário no Firestore
+      await saveUser({
+        nome,
+        email: username,
+        dataNasc,
+      });
+
+      Alert.alert(
+        'Cadastro', 
+        'Novo usuário registrado com sucesso!',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     } catch (error) {
-      const errorMessage = error.message;
-      Alert.alert('Erro', errorMessage);
-      throw error; 
+      console.error('Erro ao registrar:', error);
+      Alert.alert('Erro', error.message || 'Não foi possível registrar o usuário');
+    } finally {
+      setLoading(false);
     }
   };
-
-  const addUser = async () => {
-    const userId = await novoUser(); 
-    console.log('Novo:', userId);
-    const statement = await db.prepareAsync(
-      'INSERT INTO usuario (id, nome, usuario, senha, dataNasc) VALUES ($id,$nome,$usuario,$senha,$dataNasc)'
-    );
-    
-    try {
-      let result = await statement.executeAsync({$id: userId, $nome: nome ,$usuario: username, $senha: password, $dataNasc: dataNasc});
-
-      Alert.alert('Cadastro', 'Novo usuário registrado com sucesso!');
-    }catch (error) {
-      Alert.alert('Erro', error);
-    }finally {
-      await statement.finalizeAsync();
-  }};
 
   return (
     <View style={styles.container}>
@@ -154,8 +150,14 @@ const NewUsers = () => {
       />
         {confirmPasswordError && <Text style={styles.errorText}>O campo Confirmar senha é obrigatório</Text>}
 
-      <TouchableOpacity style={styles.button} onPress={handleSignIn}>
-        <Text style={styles.buttonText}>Registrar</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleSignIn}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Registrando...' : 'Registrar'}
+        </Text>
       </TouchableOpacity>      
     </View>
   );
@@ -220,6 +222,9 @@ const styles = StyleSheet.create({
     color: 'red',
     fontSize: 14,
     marginBottom: 10,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });
 

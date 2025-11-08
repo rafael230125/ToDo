@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from 'expo-constants';
 import { 
   getFirestore, 
   collection, 
@@ -16,16 +15,36 @@ import {
   disableNetwork,
   serverTimestamp
 } from 'firebase/firestore';
+import configData from '../../config.json';
 
-// Configuração do Firebase usando variáveis de ambiente (Constants)
-const firebaseConfig = {
-  apiKey: Constants.expoConfig?.extra?.firebaseApiKey || "AIzaSyAterCoClahPfG5dGysE37nPLnexlPOrNM",
-  authDomain: Constants.expoConfig?.extra?.firebaseAuthDomain || "todo-mobile-368fe.firebaseapp.com",
-  projectId: Constants.expoConfig?.extra?.firebaseProjectId || "todo-mobile-368fe",
-  storageBucket: Constants.expoConfig?.extra?.firebaseStorageBucket || "todo-mobile-368fe.firebasestorage.app",
-  messagingSenderId: Constants.expoConfig?.extra?.firebaseMessagingSenderId || "762086307046",
-  appId: Constants.expoConfig?.extra?.firebaseAppId || "1:762086307046:web:daa599c62234468328f727"
+// Configuração do Firebase lida do arquivo config.json
+const getFirebaseConfig = () => {
+  const firebaseConfig = configData?.firebase;
+
+  if (!firebaseConfig) {
+    throw new Error(
+      '❌ Configuração do Firebase não encontrada no arquivo config.json\n' +
+      'Por favor, crie um arquivo config.json na raiz do projeto.\n' +
+      'Consulte o arquivo config.json.example para um template.'
+    );
+  }
+
+  // Validação: garante que todas as propriedades necessárias estão definidas
+  const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+  const missingFields = requiredFields.filter(field => !firebaseConfig[field]);
+
+  if (missingFields.length > 0) {
+    throw new Error(
+      `❌ Campos obrigatórios do Firebase não encontrados em config.json: ${missingFields.join(', ')}\n` +
+      'Por favor, verifique se todos os campos estão preenchidos corretamente.\n' +
+      'Consulte o arquivo config.json.example para um template.'
+    );
+  }
+
+  return firebaseConfig;
 };
+
+const firebaseConfig = getFirebaseConfig();
 
 // Inicializar app
 export const app = initializeApp(firebaseConfig);

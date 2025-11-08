@@ -46,7 +46,6 @@ export async function getAllTasks(filters = {}) {
     // Aplicar filtros e ordenação no cliente
     return applyFiltersAndSort(tasks, filters);
   } catch (error) {
-    console.error('Erro ao buscar tarefas:', error);
     throw error;
   }
 }
@@ -102,7 +101,6 @@ export async function getTaskById(taskId) {
     }
     return null;
   } catch (error) {
-    console.error('Erro ao buscar tarefa:', error);
     throw error;
   }
 }
@@ -124,7 +122,6 @@ export async function createTask(taskData) {
     
     return docRef.id;
   } catch (error) {
-    console.error('Erro ao criar tarefa:', error);
     throw error;
   }
 }
@@ -143,7 +140,6 @@ export async function updateTask(taskId, taskData) {
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error('Erro ao atualizar tarefa:', error);
     throw error;
   }
 }
@@ -159,7 +155,6 @@ export async function deleteTask(taskId) {
     const taskRef = doc(db, 'usuarios', user.uid, SUBCOLLECTION, taskId);
     await deleteDoc(taskRef);
   } catch (error) {
-    console.error('Erro ao deletar tarefa:', error);
     throw error;
   }
 }
@@ -180,7 +175,6 @@ export async function searchTasks(searchText) {
       task.descricao?.toLowerCase().includes(search)
     );
   } catch (error) {
-    console.error('Erro ao buscar tarefas:', error);
     return [];
   }
 }

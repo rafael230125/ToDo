@@ -14,6 +14,7 @@ export * from './taskService';
 export * from './userService';
 export * from './configService';
 export * from './authService';
+export * from './notificationService';
 
 // Exports específicos para facilitar migração
 export {

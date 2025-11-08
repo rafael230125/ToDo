@@ -22,7 +22,6 @@ export function useAuth() {
           setUser(null);
         }
       } catch (error) {
-        console.error('Erro ao buscar usuário:', error);
         setUser(null);
       } finally {
         setLoading(false);

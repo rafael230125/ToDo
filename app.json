@@ -38,14 +38,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "firebaseApiKey": "AIzaSyAterCoClahPfG5dGysE37nPLnexlPOrNM",
-      "firebaseAuthDomain": "todo-mobile-368fe.firebaseapp.com",
-      "firebaseProjectId": "todo-mobile-368fe",
-      "firebaseStorageBucket": "todo-mobile-368fe.firebasestorage.app",
-      "firebaseMessagingSenderId": "762086307046",
-      "firebaseAppId": "1:762086307046:web:daa599c62234468328f727"
     }
   }
 }

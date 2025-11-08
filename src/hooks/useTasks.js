@@ -28,7 +28,6 @@ export function useTasks(initialFilters = {}) {
       setTasks(data);
       return data;
     } catch (err) {
-      console.error('Erro ao carregar tarefas:', err);
       setError(err.message || 'Erro ao carregar tarefas');
       throw err;
     } finally {
@@ -48,7 +47,6 @@ export function useTasks(initialFilters = {}) {
       
       return taskId;
     } catch (err) {
-      console.error('Erro ao criar tarefa:', err);
       setError(err.message || 'Erro ao criar tarefa');
       throw err;
     } finally {
@@ -66,7 +64,6 @@ export function useTasks(initialFilters = {}) {
       // Recarregar lista
       await loadTasks(filters);
     } catch (err) {
-      console.error('Erro ao atualizar tarefa:', err);
       setError(err.message || 'Erro ao atualizar tarefa');
       throw err;
     } finally {
@@ -84,7 +81,6 @@ export function useTasks(initialFilters = {}) {
       // Atualizar lista local
       setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
     } catch (err) {
-      console.error('Erro ao deletar tarefa:', err);
       setError(err.message || 'Erro ao deletar tarefa');
       throw err;
     } finally {
@@ -101,7 +97,6 @@ export function useTasks(initialFilters = {}) {
       setTasks(results);
       return results;
     } catch (err) {
-      console.error('Erro ao buscar tarefas:', err);
       setError(err.message || 'Erro ao buscar tarefas');
       throw err;
     } finally {

@@ -6,13 +6,42 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { getAllTasks } from '../../../services/firebaseService';
 
-export function useHomeFilters(tasks, setTasks) {
+export function useHomeFilters(tasks, setTasks, loadData) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOption, setFilterOption] = useState(null);
+  const [allTasks, setAllTasks] = useState([]); // Armazena todas as tarefas para filtros
+
+  // Carregar todas as tarefas quando necessário para filtros
+  useEffect(() => {
+    const loadAllTasks = async () => {
+      if (filterOption === 'status') {
+        try {
+          // Buscar todas as tarefas (sem filtro de status)
+          const allFetchedTasks = await getAllTasks();
+          setAllTasks(allFetchedTasks);
+        } catch (error) {
+          setAllTasks([]);
+        }
+      } else {
+        // Limpar allTasks quando não estiver usando filtro de status
+        setAllTasks([]);
+      }
+    };
+    loadAllTasks();
+  }, [filterOption]);
 
   // Aplicar filtros de forma síncrona usando useMemo
   const filteredTasks = useMemo(() => {
-    let result = [...tasks];
+    // Usar allTasks quando o filtro for 'status', senão usar tasks
+    let result = filterOption === 'status' ? [...allTasks] : [...tasks];
+
+    // Filtro por status (tarefas concluídas)
+    if (filterOption === 'status') {
+      result = result.filter((task) => {
+        const taskStatus = task.status?.toLowerCase() || '';
+        return taskStatus === 'concluída' || taskStatus === 'concluida';
+      });
+    }
 
     // Busca por texto
     if (searchQuery) {
@@ -32,10 +61,13 @@ export function useHomeFilters(tasks, setTasks) {
     // Filtro por data
     else if (filterOption === 'data') {
       const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0); // Resetar horas para comparação correta
       result = result
         .filter((task) => {
           try {
+            if (!task.dataFinal) return false;
             const dataFinal = converterParaDate(task.dataFinal);
+            dataFinal.setHours(0, 0, 0, 0);
             return dataFinal <= hoje;
           } catch {
             return false;
@@ -43,6 +75,7 @@ export function useHomeFilters(tasks, setTasks) {
         })
         .sort((a, b) => {
           try {
+            if (!a.dataFinal || !b.dataFinal) return 0;
             return converterParaDate(a.dataFinal) - converterParaDate(b.dataFinal);
           } catch {
             return 0;
@@ -51,32 +84,18 @@ export function useHomeFilters(tasks, setTasks) {
     }
 
     return result;
-  }, [tasks, searchQuery, filterOption]);
+  }, [tasks, allTasks, searchQuery, filterOption]);
 
-  // Aplicar filtro de status (assíncrono)
-  const applyStatusFilter = useCallback(async () => {
-    if (filterOption === 'status') {
-      try {
-        const completedTasks = await getAllTasks({ status: 'Concluida' });
-        setTasks(completedTasks);
-      } catch (error) {
-        console.error("Erro ao buscar tarefas concluídas:", error);
-      }
-    }
-  }, [filterOption, setTasks]);
-
-  // Atualizar quando filterOption muda para 'status'
-  useEffect(() => {
-    if (filterOption === 'status') {
-      applyStatusFilter();
-    }
-  }, [filterOption, applyStatusFilter]);
-
-  // Limpar filtros
-  const clearFilters = useCallback(() => {
+  // Limpar filtros e recarregar tarefas pendentes
+  const clearFilters = useCallback(async () => {
     setSearchQuery('');
     setFilterOption(null);
-  }, []);
+    setAllTasks([]);
+    // Recarregar tarefas pendentes
+    if (loadData) {
+      await loadData();
+    }
+  }, [loadData]);
 
   return {
     searchQuery,
@@ -90,6 +109,23 @@ export function useHomeFilters(tasks, setTasks) {
 
 // Helper
 function converterParaDate(dataString) {
-  const [dia, mes, ano] = dataString.split('/').map(Number);
-  return new Date(ano, mes - 1, dia);
+  if (!dataString) return new Date();
+  // Verificar se já é uma data
+  if (dataString instanceof Date) return dataString;
+  // Tentar diferentes formatos
+  if (typeof dataString === 'string') {
+    // Formato DD/MM/YYYY
+    if (dataString.includes('/')) {
+      const [dia, mes, ano] = dataString.split('/').map(Number);
+      if (dia && mes && ano) {
+        return new Date(ano, mes - 1, dia);
+      }
+    }
+    // Tentar parse direto
+    const parsed = new Date(dataString);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return new Date();
 }

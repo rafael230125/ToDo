@@ -1,12 +1,11 @@
 /**
  * Button Component
- * Botão reutilizável com suporte a tema e tamanhos
+ * Botão reutilizável com suporte ao novo Design System
  */
 
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
-import { getTheme } from '../../theme';
 
 export const Button = ({
   title,
@@ -18,23 +17,94 @@ export const Button = ({
   style,
   textStyle,
   children,
+  fullWidth = false,
 }) => {
-  const { isDarkTheme, fontSize } = useTheme();
-  const theme = getTheme(isDarkTheme);
+  const { colors, borderRadius, shadows, typography, spacing } = useTheme();
+
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'primary':
+        return {
+          backgroundColor: colors.primary,
+          ...shadows.button,
+        };
+      case 'secondary':
+        return {
+          backgroundColor: colors.secondary,
+          ...shadows.button,
+        };
+      case 'outline':
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderColor: colors.primary,
+        };
+      case 'ghost':
+        return {
+          backgroundColor: 'transparent',
+        };
+      default:
+        return {
+          backgroundColor: colors.primary,
+          ...shadows.button,
+        };
+    }
+  };
+
+  const getSizeStyles = () => {
+    switch (size) {
+      case 'sm':
+        return {
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.lg,
+          minHeight: 40,
+          borderRadius: borderRadius.md,
+        };
+      case 'md':
+        return {
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.xl,
+          minHeight: 48,
+          borderRadius: borderRadius.lg,
+        };
+      case 'lg':
+        return {
+          paddingVertical: spacing.lg,
+          paddingHorizontal: spacing['2xl'],
+          minHeight: 56,
+          borderRadius: borderRadius.xl,
+        };
+      default:
+        return {
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.xl,
+          minHeight: 48,
+          borderRadius: borderRadius.lg,
+        };
+    }
+  };
+
+  const getTextColor = () => {
+    if (variant === 'outline' || variant === 'ghost') {
+      return colors.primary;
+    }
+    return colors.textInverse;
+  };
 
   const buttonStyle = [
     styles.button,
-    styles[`button_${variant}`],
-    styles[`button_${size}`],
-    disabled && styles.button_disabled,
-    { backgroundColor: theme.colors[variant] || theme.colors.primary },
+    getVariantStyles(),
+    getSizeStyles(),
+    fullWidth && styles.fullWidth,
+    disabled && styles.buttonDisabled,
     style,
   ];
 
   const buttonTextStyle = [
     styles.text,
+    typography.textStyles.button,
+    { color: getTextColor() },
     textStyle,
-    { fontSize: fontSize },
   ];
 
   return (
@@ -42,10 +112,10 @@ export const Button = ({
       style={buttonStyle}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={getTextColor()} />
       ) : (
         <Text style={buttonTextStyle}>
           {title || children}
@@ -57,42 +127,17 @@ export const Button = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    flexDirection: 'row',
   },
-  button_primary: {
-    backgroundColor: '#51c1f5',
-  },
-  button_secondary: {
-    backgroundColor: '#FFC107',
-  },
-  button_sm: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    minHeight: 40,
-  },
-  button_md: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    minHeight: 50,
-  },
-  button_lg: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    minHeight: 60,
+  fullWidth: {
+    width: '100%',
   },
   text: {
-    color: '#fff',
-    fontWeight: 'bold',
+    textAlign: 'center',
   },
-  button_disabled: {
+  buttonDisabled: {
     opacity: 0.5,
   },
 });
-

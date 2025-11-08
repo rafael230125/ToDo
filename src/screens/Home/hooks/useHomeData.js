@@ -29,7 +29,7 @@ export function useHomeData() {
       
       return fetchedTasks;
     } catch (error) {
-      console.error("Erro ao buscar tarefas ou usuário:", error);
+      // Erro silencioso ao buscar tarefas ou usuário
     } finally {
       setLoading(false);
     }

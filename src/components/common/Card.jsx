@@ -1,43 +1,71 @@
 /**
  * Card Component
- * Card reutilizável com suporte a tema
+ * Card reutilizável com novo Design System
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
-import { getTheme } from '../../theme';
 
 export const Card = ({
   children,
   variant = 'default',
-  padding = 'md',
   style,
+  ...props
 }) => {
-  const { isDarkTheme } = useTheme();
-  const theme = getTheme(isDarkTheme);
+  const { colors, borderRadius, shadows, spacing } = useTheme();
 
-  const cardStyle = [
-    styles.card,
-    {
-      backgroundColor: variant === 'selected' ? theme.colors.selected : theme.colors.card,
-      padding: theme.spacing[padding] || theme.spacing.md,
-    },
-    style,
-  ];
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'selected':
+        return {
+          backgroundColor: colors.selected,
+          borderWidth: 1,
+          borderColor: colors.primary,
+        };
+      case 'elevated':
+        return {
+          backgroundColor: colors.surfaceElevated,
+          ...shadows.cardHover,
+        };
+      default:
+        return {
+          backgroundColor: colors.card,
+          ...shadows.card,
+        };
+    }
+  };
 
-  return <View style={cardStyle}>{children}</View>;
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          borderRadius: borderRadius.lg,
+          padding: spacing.lg,
+        },
+        getVariantStyles(),
+        style,
+      ]}
+      {...props}
+    >
+      {children}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    marginBottom: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
 });
-

@@ -52,7 +52,6 @@ export class BaseRepository {
       }
       return null;
     } catch (error) {
-      console.error(`Erro ao buscar ${this.collectionName}:`, error);
       throw error;
     }
   }
@@ -75,7 +74,6 @@ export class BaseRepository {
 
       return documents;
     } catch (error) {
-      console.error(`Erro ao listar ${this.collectionName}:`, error);
       throw error;
     }
   }
@@ -94,7 +92,6 @@ export class BaseRepository {
       
       return docRef.id;
     } catch (error) {
-      console.error(`Erro ao criar ${this.collectionName}:`, error);
       throw error;
     }
   }
@@ -110,7 +107,6 @@ export class BaseRepository {
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
-      console.error(`Erro ao atualizar ${this.collectionName}:`, error);
       throw error;
     }
   }
@@ -123,7 +119,6 @@ export class BaseRepository {
       const docRef = doc(db, this.getCollectionPath(), documentId);
       await deleteDoc(docRef);
     } catch (error) {
-      console.error(`Erro ao deletar ${this.collectionName}:`, error);
       throw error;
     }
   }

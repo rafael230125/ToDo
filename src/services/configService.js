@@ -25,7 +25,6 @@ export async function getUserConfig() {
     }
     return null;
   } catch (error) {
-    console.error('Erro ao buscar configurações:', error);
     throw error;
   }
 }
@@ -44,7 +43,6 @@ export async function saveUserConfig(configData) {
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error('Erro ao salvar configurações:', error);
     throw error;
   }
 }
@@ -63,7 +61,6 @@ export async function updateConfigField(field, value) {
       updatedAt: serverTimestamp(),
     }, { merge: true });
   } catch (error) {
-    console.error('Erro ao atualizar configuração:', error);
     throw error;
   }
 }

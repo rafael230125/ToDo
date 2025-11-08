@@ -1,16 +1,22 @@
 /**
  * Hook customizado para tema
  * 
- * Combina FontContext e ThemeContext em um hook único
+ * Combina FontContext e ThemeContext com o novo Design System
  */
 
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { FontContext } from '../context/FontContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { getTheme } from '../theme';
 
 export function useTheme() {
   const fontContext = useContext(FontContext);
   const themeContext = useContext(ThemeContext);
+  
+  const isDarkTheme = themeContext?.isDarkTheme || false;
+  
+  // Memoiza o tema para evitar recálculos desnecessários
+  const theme = useMemo(() => getTheme(isDarkTheme), [isDarkTheme]);
 
   return {
     // Fonte
@@ -19,16 +25,19 @@ export function useTheme() {
     decreaseFontSize: fontContext?.decreaseFontSize || (() => {}),
     
     // Tema
-    isDarkTheme: themeContext?.isDarkTheme || false,
+    isDarkTheme,
     toggleTheme: themeContext?.toggleTheme || (() => {}),
     
-    // Cores dinâmicas
-    colors: {
-      background: themeContext?.isDarkTheme ? '#333' : '#f9f9f9',
-      text: themeContext?.isDarkTheme ? '#fff' : '#333',
-      primary: '#51c1f5',
-      secondary: '#FFC107',
-    },
+    // Design System completo
+    colors: theme.colors,
+    gradients: theme.gradients,
+    semanticColors: theme.semanticColors,
+    typography: theme.typography,
+    spacing: theme.spacing,
+    borderRadius: theme.borderRadius,
+    shadows: theme.shadows,
+    getSpacing: theme.getSpacing,
+    containerPadding: theme.containerPadding,
   };
 }
 

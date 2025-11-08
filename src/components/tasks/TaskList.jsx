@@ -25,32 +25,47 @@ const TaskListComponent = ({
   }
 
   return (
-    <FlatList
-      data={tasks}
-      renderItem={({ item }) => (
-        <TaskItem
-          task={item}
-          onPress={onTaskPress}
-          isSelected={item.id === selectedTaskId}
-        />
-      )}
-      keyExtractor={(item) => item.id}
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={{ color: colors.text }}>
-            Nenhuma tarefa encontrada
-          </Text>
-        </View>
-      }
-      contentContainerStyle={styles.list}
-    />
+    <View style={styles.container}>
+      <FlatList
+        data={tasks}
+        renderItem={({ item }) => (
+          <TaskItem
+            task={item}
+            onPress={onTaskPress}
+            isSelected={item.id === selectedTaskId}
+          />
+        )}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={{ color: colors.text }}>
+              Nenhuma tarefa encontrada
+            </Text>
+          </View>
+        }
+        contentContainerStyle={[
+          styles.list,
+          tasks.length === 0 && styles.emptyList
+        ]}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   list: {
     paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 20,
+  },
+  emptyList: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   loadingContainer: {
     flex: 1,

@@ -33,7 +33,6 @@ export async function logout() {
   try {
     await auth.signOut();
   } catch (error) {
-    console.error('Erro ao fazer logout:', error);
     throw error;
   }
 }

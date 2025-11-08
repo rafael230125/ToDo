@@ -24,7 +24,6 @@ export async function getCurrentUser() {
     }
     return null;
   } catch (error) {
-    console.error('Erro ao buscar usuário:', error);
     throw error;
   }
 }
@@ -45,7 +44,6 @@ export async function saveUser(userData) {
     
     return user.uid;
   } catch (error) {
-    console.error('Erro ao salvar usuário:', error);
     throw error;
   }
 }
@@ -64,7 +62,6 @@ export async function updateUserPhoto(photo) {
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error('Erro ao atualizar foto:', error);
     throw error;
   }
 }
@@ -83,7 +80,6 @@ export async function updateUser(userData) {
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error('Erro ao atualizar usuário:', error);
     throw error;
   }
 }

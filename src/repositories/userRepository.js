@@ -41,7 +41,6 @@ export class UserRepository extends BaseRepository {
       }
       return null;
     } catch (error) {
-      console.error('Erro ao buscar usuário:', error);
       throw error;
     }
   }
@@ -62,7 +61,6 @@ export class UserRepository extends BaseRepository {
       
       return userId;
     } catch (error) {
-      console.error('Erro ao salvar usuário:', error);
       throw error;
     }
   }
@@ -81,7 +79,6 @@ export class UserRepository extends BaseRepository {
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
-      console.error('Erro ao atualizar usuário:', error);
       throw error;
     }
   }

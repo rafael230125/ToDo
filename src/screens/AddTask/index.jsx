@@ -5,7 +5,6 @@ import {
   TouchableOpacity, 
   Text, 
   ScrollView,
-  Alert,
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
@@ -17,6 +16,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../hooks/useTheme';
+import { useToast } from '../../context/ToastContext';
+import { useHapticFeedback } from '../../hooks/useHapticFeedback';
+import { AnimatedButton } from '../../components/common/AnimatedButton';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { getTaskById, createTask, updateTask } from '../../services/firebaseService';
 import { NotificationConfig } from '../../components/tasks/NotificationConfig';
 import {
@@ -30,23 +33,31 @@ const AddTaskScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { idTarefa } = route.params || {};
-  const { colors, shadows, semanticColors, isDarkTheme } = useTheme();
+  const { colors, shadows, semanticColors, isDarkTheme, spacing } = useTheme();
+  const { showSuccess, showError, showWarning } = useToast();
+  const { success, error } = useHapticFeedback();
   const styles = createStyles();
+  
+  // Verificar se está sendo acessada via tab ou stack
+  const isTabNavigator = route.name === 'AddTaskTab';
 
   // Configurar header dinamicamente baseado no tema
   useLayoutEffect(() => {
-    navigation.setOptions({
-      title: 'Voltar',
-      headerStyle: {
-        backgroundColor: colors.surface,
-      },
-      headerTintColor: colors.text,
-      headerTitleStyle: {
-        color: colors.text,
-        fontWeight: '600',
-      },
-    });
-  }, [navigation, colors, isDarkTheme]);
+    // Só configurar header se não estiver no tab navigator
+    if (!isTabNavigator) {
+      navigation.setOptions({
+        title: 'Voltar',
+        headerStyle: {
+          backgroundColor: colors.surface,
+        },
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          color: colors.text,
+          fontWeight: '600',
+        },
+      });
+    }
+  }, [navigation, colors, isDarkTheme, isTabNavigator]);
 
   const [dataInicio, setDataInicio] = useState(new Date());
   const [dataFinal, setDataFinal] = useState(new Date());
@@ -62,6 +73,8 @@ const AddTaskScreen = () => {
   const [loading, setLoading] = useState(false);
   const [mostrarModalPrioridade, setMostrarModalPrioridade] = useState(false);
   const [mostrarModalStatus, setMostrarModalStatus] = useState(false);
+  const [mostrarModalConfirmacao, setMostrarModalConfirmacao] = useState(false);
+  const [acaoConfirmacao, setAcaoConfirmacao] = useState(null);
   
   // Estados de notificação
   const [notificationEnabled, setNotificationEnabled] = useState(false);
@@ -111,7 +124,7 @@ const AddTaskScreen = () => {
             }
           }
         } catch (error) {
-          Alert.alert('Erro', 'Não foi possível carregar a tarefa');
+          showError('Não foi possível carregar a tarefa');
         } finally {
           setLoading(false);
         }
@@ -144,12 +157,15 @@ const AddTaskScreen = () => {
 
   const addNova = async () => {
     if (!nomeTarefa.trim()) {
-      Alert.alert('Aviso', 'Nome da tarefa é obrigatório!');
+      showWarning('Nome da tarefa é obrigatório!');
       return;
     }
 
     try {
       setLoading(true);
+      
+      // Se notificação estiver habilitada mas não houver data, desabilitar automaticamente
+      const finalNotificationEnabled = notificationEnabled && notificationDate ? true : false;
       
       const taskData = {
         nome: nomeTarefa,
@@ -158,16 +174,16 @@ const AddTaskScreen = () => {
         dataFinal: textoDataFinal,
         prioridade: prioridade,
         status: status,
-        notificationEnabled: notificationEnabled,
-        notificationDate: notificationDate?.toISOString(),
+        notificationEnabled: finalNotificationEnabled,
+        notificationDate: notificationDate?.toISOString() || null,
         repeatCount: repeatCount,
         repeatInterval: repeatInterval,
       };
 
       const taskId = await createTask(taskData);
       
-      // Agendar notificações se habilitadas
-      if (notificationEnabled && notificationDate) {
+      // Agendar notificações apenas se habilitadas E com data definida
+      if (finalNotificationEnabled && notificationDate) {
         const notificationIds = await scheduleTaskNotification({
           taskId,
           taskName: nomeTarefa,
@@ -183,10 +199,14 @@ const AddTaskScreen = () => {
         }
       }
       
-      Alert.alert('Sucesso', 'Tarefa salva com sucesso!');
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar a tarefa');
+      success(); // Haptic feedback
+      showSuccess('Tarefa salva com sucesso!');
+      setTimeout(() => {
+        navigation.goBack();
+      }, 500);
+    } catch (err) {
+      error(); // Haptic feedback
+      showError('Não foi possível salvar a tarefa');
     } finally {
       setLoading(false);
     }
@@ -194,7 +214,7 @@ const AddTaskScreen = () => {
 
   const atualizarTarefa = async () => {
     if (!nomeTarefa.trim()) {
-      Alert.alert('Aviso', 'Nome da tarefa é obrigatório!');
+      showWarning('Nome da tarefa é obrigatório!');
       return;
     }
 
@@ -206,6 +226,9 @@ const AddTaskScreen = () => {
         await cancelTaskNotifications(scheduledNotificationIds);
       }
       
+      // Se notificação estiver habilitada mas não houver data, desabilitar automaticamente
+      const finalNotificationEnabled = notificationEnabled && notificationDate ? true : false;
+      
       const taskData = {
         nome: nomeTarefa,
         descricao: descricao,
@@ -213,16 +236,16 @@ const AddTaskScreen = () => {
         dataFinal: textoDataFinal,
         prioridade: prioridade,
         status: status,
-        notificationEnabled: notificationEnabled,
-        notificationDate: notificationDate?.toISOString(),
+        notificationEnabled: finalNotificationEnabled,
+        notificationDate: notificationDate?.toISOString() || null,
         repeatCount: repeatCount,
         repeatInterval: repeatInterval,
       };
 
       await updateTask(idTarefa, taskData);
       
-      // Agendar novas notificações se habilitadas
-      if (notificationEnabled && notificationDate) {
+      // Agendar novas notificações apenas se habilitadas E com data definida
+      if (finalNotificationEnabled && notificationDate) {
         const notificationIds = await scheduleTaskNotification({
           taskId: idTarefa,
           taskName: nomeTarefa,
@@ -238,10 +261,14 @@ const AddTaskScreen = () => {
         }
       }
       
-      Alert.alert('Sucesso', 'Tarefa editada com sucesso!');
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível atualizar a tarefa');
+      success(); // Haptic feedback
+      showSuccess('Tarefa editada com sucesso!');
+      setTimeout(() => {
+        navigation.goBack();
+      }, 500);
+    } catch (err) {
+      error(); // Haptic feedback
+      showError('Não foi possível atualizar a tarefa');
     } finally {
       setLoading(false);
     }
@@ -259,7 +286,7 @@ const AddTaskScreen = () => {
   return (
     <SafeAreaView 
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['bottom']}
+      edges={isTabNavigator ? ['top', 'bottom'] : ['bottom']}
     >
       <KeyboardAvoidingView 
         style={styles.keyboardView}
@@ -272,7 +299,10 @@ const AddTaskScreen = () => {
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View style={styles.formContainer}>
+          <View style={[
+            styles.formContainer,
+            isTabNavigator && { paddingTop: spacing.xl }
+          ]}>
             {/* Título */}
             <Text style={[styles.title, { color: colors.text }]}>
               {modoEdicao ? 'Editar Tarefa' : 'Nova Tarefa'}
@@ -568,7 +598,7 @@ const AddTaskScreen = () => {
             />
 
             {/* Botão Salvar */}
-            <TouchableOpacity
+            <AnimatedButton
               style={[
                 styles.saveButton,
                 {
@@ -579,7 +609,8 @@ const AddTaskScreen = () => {
               ]}
               onPress={modoEdicao ? atualizarTarefa : addNova}
               disabled={loading}
-              activeOpacity={0.8}
+              haptic={true}
+              hapticType="medium"
             >
               {loading ? (
                 <ActivityIndicator color={colors.textInverse} />
@@ -599,7 +630,7 @@ const AddTaskScreen = () => {
                   </Text>
                 </>
               )}
-            </TouchableOpacity>
+            </AnimatedButton>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

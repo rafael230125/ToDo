@@ -37,6 +37,8 @@ jest.mock('@react-navigation/native', () => {
   };
 });
 
+// Mock do @expo/vector-icons será feito individualmente nos testes que precisam
+
 // Mock do Firebase
 jest.mock('firebase/app', () => ({
   initializeApp: jest.fn(),
@@ -65,6 +67,12 @@ jest.mock('firebase/firestore', () => ({
   query: jest.fn(),
   where: jest.fn(),
   serverTimestamp: jest.fn(),
+}));
+
+// Mock para resolver problema de ViewConfigIgnore.js
+jest.mock('react-native/Libraries/NativeComponent/ViewConfigIgnore', () => ({
+  ConditionallyIgnoredEventHandlers: (value) => value,
+  DynamicallyInjectedByGestureHandler: (value) => value,
 }));
 
 // Suprimir warnings do console durante testes

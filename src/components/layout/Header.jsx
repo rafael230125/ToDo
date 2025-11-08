@@ -4,13 +4,11 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Image } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 
 export const Header = ({ 
   userName = 'Usuário',
-  appTitle = 'TO-DO',
-  showLogo = false,
 }) => {
   const { colors, typography, spacing, shadows } = useTheme();
 
@@ -18,19 +16,19 @@ export const Header = ({
     <View style={[
       styles.header,
       { 
-        backgroundColor: colors.primary,
-        paddingTop: spacing.lg,
+        backgroundColor: colors.surface,
+        paddingTop: spacing.xl,
         ...shadows.header,
       }
     ]}>
       <View style={styles.profileContainer}>
         <View style={styles.leftContainer}>
           <View style={styles.userInfoContainer}>
-            <Text style={[styles.greeting, { color: colors.textInverse }]}>
+            <Text style={[styles.greeting, { color: colors.textSecondary }]}>
               Olá,
             </Text>
             <Text 
-              style={[styles.userName, { color: colors.textInverse }]}
+              style={[styles.userName, { color: colors.text }]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -38,9 +36,13 @@ export const Header = ({
             </Text>
           </View>
         </View>
-        <Text style={[styles.appTitle, { color: colors.textInverse }]}>
-          {appTitle}
-        </Text>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../../images/icones.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
       </View>
     </View>
   );
@@ -94,18 +96,16 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  appTitle: {
-    fontSize: 24,
-    fontWeight: Platform.select({
-      ios: '700',
-      android: 'bold',
-    }),
-    letterSpacing: -0.5,
-    lineHeight: 30,
-    ...Platform.select({
-      android: {
-        includeFontPadding: false,
-      },
-    }),
+  logoContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 48,
+    height: 48,
   },
 });

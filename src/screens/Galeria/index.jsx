@@ -6,7 +6,6 @@ import {
   Image, 
   View, 
   TouchableOpacity, 
-  Alert, 
   ActivityIndicator,
   Platform 
 } from 'react-native';
@@ -15,6 +14,7 @@ import * as FileSystem from 'expo-file-system';
 import { MaterialIcons } from '@expo/vector-icons';
 import { updateUserPhoto } from '../../services/firebaseService';
 import { useTheme } from '../../hooks/useTheme';
+import { useToast } from '../../context/ToastContext';
 import { createStyles } from './styles';
 
 export default function Galeria({ navigation }) {
@@ -22,6 +22,7 @@ export default function Galeria({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const { colors, shadows, spacing, isDarkTheme } = useTheme();
+  const { showError, showWarning } = useToast();
   const styles = createStyles(colors, shadows, spacing);
 
   // Configurar header dinamicamente baseado no tema
@@ -74,14 +75,11 @@ export default function Galeria({ navigation }) {
         setHasPermission(true);
         loadAlbums();
       } else {
-        Alert.alert(
-          'Permissão necessária', 
-          'A permissão para acessar a galeria é obrigatória para selecionar uma foto de perfil.'
-        );
+        showWarning('A permissão para acessar a galeria é obrigatória para selecionar uma foto de perfil.');
         setLoading(false);
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível solicitar permissão para acessar a galeria.');
+      showError('Não foi possível solicitar permissão para acessar a galeria.');
       setLoading(false);
     }
   };
@@ -103,7 +101,7 @@ export default function Galeria({ navigation }) {
       const albumsWithImages = fetchedAlbums.filter(album => album.assetCount > 0);
       setAlbums(albumsWithImages);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar os álbuns da galeria.');
+      showError('Não foi possível carregar os álbuns da galeria.');
     } finally {
       setLoading(false);
     }
@@ -161,6 +159,7 @@ function AlbumEntry({ album, navigation, colors, shadows, spacing }) {
   const [assets, setAssets] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loadingAssets, setLoadingAssets] = useState(false);
+  const { showSuccess, showError, showWarning } = useToast();
   const styles = createStyles(colors, shadows, spacing);
 
   useEffect(() => {
@@ -188,7 +187,7 @@ function AlbumEntry({ album, navigation, colors, shadows, spacing }) {
 
   const handleSaveAndNavigate = async () => {
     if (!selectedImage) {
-      Alert.alert('Atenção', 'Por favor, selecione uma imagem antes de salvar.');
+      showWarning('Por favor, selecione uma imagem antes de salvar.');
       return;
     }
 
@@ -200,10 +199,12 @@ function AlbumEntry({ album, navigation, colors, shadows, spacing }) {
 
       await updateUserPhoto(base64Image);
 
-      Alert.alert('Sucesso', 'Foto de perfil atualizada com sucesso!');
-      navigation.goBack();
+      showSuccess('Foto de perfil atualizada com sucesso!');
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1000);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar a imagem. Tente novamente.');
+      showError('Não foi possível salvar a imagem. Tente novamente.');
     }
   };
 

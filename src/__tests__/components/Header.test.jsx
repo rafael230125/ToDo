@@ -26,7 +26,7 @@ describe('Header Component', () => {
 
     expect(getByText('Olá,')).toBeTruthy();
     expect(getByText('João Silva')).toBeTruthy();
-    expect(getByText('TO-DO')).toBeTruthy();
+    // TO-DO foi removido e substituído por ícone
   });
 
   it('deve usar nome padrão quando userName não for fornecido', () => {
@@ -52,14 +52,16 @@ describe('Header Component', () => {
     expect(nameElement.props.ellipsizeMode).toBe('tail');
   });
 
-  it('deve renderizar título customizado', () => {
-    const { getByText } = render(
+  it('deve renderizar ícone do app', () => {
+    const { UNSAFE_getByType } = render(
       <MockThemeProvider>
-        <Header userName="Teste" appTitle="Minhas Tarefas" />
+        <Header userName="Teste" />
       </MockThemeProvider>
     );
 
-    expect(getByText('Minhas Tarefas')).toBeTruthy();
+    // Verifica se o componente Image (ícone) está presente
+    const image = UNSAFE_getByType(require('react-native').Image);
+    expect(image).toBeTruthy();
   });
 });
 

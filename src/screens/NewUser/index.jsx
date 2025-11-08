@@ -5,7 +5,6 @@ import {
   TextInput, 
   TouchableOpacity, 
   Image, 
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -18,11 +17,16 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { auth, createUserWithEmailAndPassword } from "../../services/firebaseConfig";
 import { saveUser } from "../../services/firebaseService";
 import { useTheme } from '../../hooks/useTheme';
+import { useToast } from '../../context/ToastContext';
+import { useHapticFeedback } from '../../hooks/useHapticFeedback';
+import { AnimatedButton } from '../../components/common/AnimatedButton';
 import { createStyles } from './styles';
 
 const NewUsers = () => {
   const navigation = useNavigation();
   const { colors, shadows, typography, isDarkTheme } = useTheme();
+  const { showSuccess, showError, showWarning } = useToast();
+  const { success, error } = useHapticFeedback();
   const styles = createStyles();
 
   // Configurar header dinamicamente baseado no tema
@@ -71,12 +75,12 @@ const NewUsers = () => {
     setDataNascError(!dataNasc);
 
     if (!nome || !username || !password || !confirmPassword || !dataNasc) {
-      Alert.alert('Aviso', 'Campos obrigatórios, favor preencher');
+      showWarning('Campos obrigatórios, favor preencher');
       return;
     }
 
     if (confirmPassword !== password) {
-      Alert.alert('Aviso', 'Senhas não conferem!');
+      showWarning('Senhas não conferem!');
       passwordRef.current?.focus();
       return;
     }
@@ -99,13 +103,14 @@ const NewUsers = () => {
         dataNasc,
       });
 
-      Alert.alert(
-        'Cadastro', 
-        'Novo usuário registrado com sucesso!',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
-    } catch (error) {
-      Alert.alert('Erro', error.message || 'Não foi possível registrar o usuário');
+      success(); // Haptic feedback
+      showSuccess('Novo usuário registrado com sucesso!');
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1000);
+    } catch (err) {
+      error(); // Haptic feedback
+      showError(err.message || 'Não foi possível registrar o usuário');
     } finally {
       setLoading(false);
     }
@@ -361,7 +366,7 @@ const NewUsers = () => {
             </View>
 
             {/* Botão Registrar */}
-            <TouchableOpacity 
+            <AnimatedButton 
               style={[
                 styles.button,
                 {
@@ -372,7 +377,8 @@ const NewUsers = () => {
               ]} 
               onPress={handleSignIn}
               disabled={loading}
-              activeOpacity={0.8}
+              haptic={true}
+              hapticType="medium"
             >
               {loading ? (
                 <ActivityIndicator color={colors.textInverse} />
@@ -381,7 +387,7 @@ const NewUsers = () => {
                   Registrar
                 </Text>
               )}
-            </TouchableOpacity>
+            </AnimatedButton>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

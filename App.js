@@ -1,20 +1,20 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from './src/services/firebaseConfig';
 import { FontProvider } from './src/context/FontContext';
 import { ThemeProvider } from './src/context/ThemeContext.js';
+import { ToastProvider } from './src/context/ToastContext';
+import { TabNavigator } from './src/navigation/TabNavigator';
 
 // Lazy loading de telas pesadas
-const HomeScreen = React.lazy(() => import('./src/screens/Home').then(module => ({ default: module.default || module.HomeScreen })));
-const AddTaskScreen = React.lazy(() => import('./src/screens/AddTask'));
 const LoginScreen = React.lazy(() => import('./src/screens/Login'));
 const NewUsers = React.lazy(() => import('./src/screens/NewUser'));
-const ConfigScreen = React.lazy(() => import('./src/screens/Config'));
 
 // Loading component
 const Loading = () => (
@@ -55,7 +55,9 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <FontProvider>
-            <Loading />
+            <ToastProvider>
+              <Loading />
+            </ToastProvider>
           </FontProvider>
         </ThemeProvider>
       </SafeAreaProvider>
@@ -63,22 +65,43 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <FontProvider>
-          <Suspense fallback={<Loading />}>
-            <NavigationContainer>
-              <Stack.Navigator initialRouteName={rotaInicial}>
-                <Stack.Screen 
-                  name="Home" 
-                  component={HomeScreen} 
-                  options={{ headerShown: false }} 
-                />
-                <Stack.Screen 
-                  name="AddTask" 
-                  component={AddTaskScreen} 
-                  options={{ title: 'Voltar' }} 
-                />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <FontProvider>
+            <ToastProvider>
+              <Suspense fallback={<Loading />}>
+              <NavigationContainer>
+              <Stack.Navigator 
+                initialRouteName={rotaInicial}
+                screenOptions={{
+                  cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+                  transitionSpec: {
+                    open: {
+                      animation: 'spring',
+                      config: {
+                        stiffness: 1000,
+                        damping: 500,
+                        mass: 3,
+                        overshootClamping: true,
+                        restDisplacementThreshold: 0.01,
+                        restSpeedThreshold: 0.01,
+                      },
+                    },
+                    close: {
+                      animation: 'spring',
+                      config: {
+                        stiffness: 1000,
+                        damping: 500,
+                        mass: 3,
+                        overshootClamping: true,
+                        restDisplacementThreshold: 0.01,
+                        restSpeedThreshold: 0.01,
+                      },
+                    },
+                  },
+                }}
+              >
                 <Stack.Screen
                   name="Login" 
                   component={LoginScreen}
@@ -90,15 +113,22 @@ export default function App() {
                   options={{ title: 'Voltar' }} 
                 />
                 <Stack.Screen 
-                  name="Config" 
-                  component={ConfigScreen} 
-                  options={{ title: 'Configurações' }} 
+                  name="MainTabs" 
+                  component={TabNavigator} 
+                  options={{ headerShown: false }} 
+                />
+                <Stack.Screen 
+                  name="AddTask" 
+                  component={React.lazy(() => import('./src/screens/AddTask'))} 
+                  options={{ title: 'Voltar' }} 
                 />
               </Stack.Navigator>
-            </NavigationContainer>
-          </Suspense>
-        </FontProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+              </NavigationContainer>
+              </Suspense>
+            </ToastProvider>
+          </FontProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

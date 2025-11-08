@@ -3,8 +3,8 @@
  * Input reutilizável com suporte a tema
  */
 
-import React from 'react';
-import { TextInput, View, Text, StyleSheet } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { TextInput, View, Text, StyleSheet, Animated } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { getTheme } from '../../theme';
 
@@ -20,14 +20,41 @@ export const Input = ({
   style,
   ...props
 }) => {
-  const { isDarkTheme, fontSize } = useTheme();
+  const { isDarkTheme, fontSize, colors } = useTheme();
   const theme = getTheme(isDarkTheme);
+  const [focused, setFocused] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const borderColorAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: focused ? 1.02 : 1,
+        useNativeDriver: true,
+        tension: 300,
+        friction: 10,
+      }),
+      Animated.timing(borderColorAnim, {
+        toValue: focused ? 1 : 0,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [focused]);
+
+  const borderColor = borderColorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [
+      error ? theme.colors.error : theme.colors.border,
+      error ? theme.colors.error : colors.primary || theme.colors.primary,
+    ],
+  });
 
   const inputStyle = [
     styles.input,
     {
       backgroundColor: theme.colors.surface,
-      borderColor: error ? theme.colors.error : theme.colors.border,
+      borderColor,
       color: theme.colors.text,
       fontSize,
     },
@@ -37,7 +64,7 @@ export const Input = ({
   ];
 
   return (
-    <View>
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <TextInput
         style={inputStyle}
         value={value}
@@ -47,6 +74,8 @@ export const Input = ({
         disabled={disabled}
         multiline={multiline}
         secureTextEntry={secureTextEntry}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         {...props}
       />
       {error && errorMessage && (
@@ -54,7 +83,7 @@ export const Input = ({
           {errorMessage}
         </Text>
       )}
-    </View>
+    </Animated.View>
   );
 };
 

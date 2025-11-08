@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Alert, BackHandler, StatusBar } from 'react-native';
+import { View, BackHandler, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,26 +13,34 @@ import { Header } from '../../components/layout/Header';
 import { SearchBar } from '../../components/layout/SearchBar';
 import { TaskList } from '../../components/tasks/TaskList';
 import { TaskFilter } from '../../components/tasks/TaskFilter';
-import { NavBar } from '../../components/layout/NavBar';
 import { useHomeData } from './hooks/useHomeData';
 import { useHomeFilters } from './hooks/useHomeFilters';
-import { deleteTask } from '../../services/firebaseService';
+import { deleteTask, updateTask, logout } from '../../services/firebaseService';
 import { useTheme } from '../../hooks/useTheme';
+import { useToast } from '../../context/ToastContext';
+import { useHapticFeedback } from '../../hooks/useHapticFeedback';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { createStyles } from './styles';
 
 export const HomeScreen = () => {
   const navigation = useNavigation();
-  const { colors } = useTheme();
+  const { colors, isDarkTheme } = useTheme();
+  const { showSuccess, showError } = useToast();
+  const { mediumImpact } = useHapticFeedback();
   const styles = createStyles(colors);
 
   // Verificação de autenticação - redireciona para Login se não autenticado
   useEffect(() => {
     if (!auth.currentUser) {
-      navigation.replace('Login');
+      // Navegar para Login no Stack Navigator
+      navigation.getParent()?.navigate('Login');
     }
   }, [navigation]);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [isFilterMenuVisible, setFilterMenuVisible] = useState(false);
+  const [mostrarModalConfirmacao, setMostrarModalConfirmacao] = useState(false);
+  const [taskIdParaExcluir, setTaskIdParaExcluir] = useState(null);
+  const [mostrarModalSair, setMostrarModalSair] = useState(false);
 
   // Hooks de dados e filtros
   const { tasks, userName, loading, loadData, setTasks } = useHomeData();
@@ -45,12 +53,12 @@ export const HomeScreen = () => {
     clearFilters,
   } = useHomeFilters(tasks, setTasks, loadData);
 
-  // Back Handler
+  // Back Handler - Mostrar modal de confirmação ao pressionar voltar
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        BackHandler.exitApp();
-        return true;
+        setMostrarModalSair(true);
+        return true; // Previne o comportamento padrão
       };
 
       const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
@@ -68,32 +76,60 @@ export const HomeScreen = () => {
     setSelectedTaskId(selectedTaskId === taskId ? null : taskId);
   };
 
-  const handleDeleteTask = async () => {
-    if (!selectedTaskId) return;
+  const handleDeleteTask = (taskId) => {
+    if (!taskId) return;
+    setTaskIdParaExcluir(taskId);
+    setMostrarModalConfirmacao(true);
+  };
 
-    Alert.alert(
-      'Confirmar',
-      'Deseja realmente excluir esta tarefa?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteTask(selectedTaskId);
-              // Atualizar lista de tasks - filteredTasks será recalculado automaticamente pelo useMemo
-              const updatedTasks = tasks.filter(t => t.id !== selectedTaskId);
-              setTasks(updatedTasks);
-              setSelectedTaskId(null);
-              // Não mostrar alerta de sucesso, apenas remover silenciosamente
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível excluir a tarefa');
-            }
-          }
-        }
-      ]
-    );
+  const confirmarExclusao = async () => {
+    if (!taskIdParaExcluir) return;
+
+    try {
+      mediumImpact(); // Haptic feedback
+      await deleteTask(taskIdParaExcluir);
+      // Atualizar lista de tasks - filteredTasks será recalculado automaticamente pelo useMemo
+      const updatedTasks = tasks.filter(t => t.id !== taskIdParaExcluir);
+      setTasks(updatedTasks);
+      setSelectedTaskId(null);
+      showSuccess('Tarefa excluída com sucesso!');
+    } catch (error) {
+      showError('Não foi possível excluir a tarefa');
+    } finally {
+      setTaskIdParaExcluir(null);
+    }
+  };
+
+  const handleEditTask = (taskId) => {
+    if (!taskId) return;
+    // Navegar para AddTask no Stack Navigator com o id da tarefa para edição
+    navigation.getParent()?.navigate('AddTask', { idTarefa: taskId });
+  };
+
+  const handleCompleteTask = async (taskId) => {
+    if (!taskId) return;
+
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const newStatus = task.status === 'Concluida' ? 'Pendente' : 'Concluida';
+      await updateTask(taskId, { status: newStatus });
+      
+      // Atualizar lista de tasks
+      const updatedTasks = tasks.map(t => 
+        t.id === taskId ? { ...t, status: newStatus } : t
+      );
+      setTasks(updatedTasks);
+      
+      showSuccess(
+        newStatus === 'Concluida' 
+          ? 'Tarefa marcada como concluída!' 
+          : 'Tarefa marcada como pendente!'
+      );
+    } catch (error) {
+      showError('Não foi possível atualizar a tarefa');
+    }
   };
 
   const handleFilterChange = (option) => {
@@ -101,11 +137,22 @@ export const HomeScreen = () => {
     // filteredTasks será recalculado automaticamente pelo useMemo
   };
 
+  const handleSairSistema = async () => {
+    try {
+      await logout();
+      // Navegar para Login após logout
+      navigation.getParent()?.navigate('Login');
+      showSuccess('Sessão encerrada com sucesso!');
+    } catch (error) {
+      showError('Não foi possível encerrar a sessão');
+    }
+  };
+
   return (
     <>
       <StatusBar 
-        barStyle="light-content" 
-        backgroundColor={colors.primary}
+        barStyle={isDarkTheme ? "light-content" : "dark-content"}
+        backgroundColor={colors.surface}
         translucent={false}
       />
       <SafeAreaView 
@@ -126,6 +173,10 @@ export const HomeScreen = () => {
             onTaskPress={handleTaskSelect}
             selectedTaskId={selectedTaskId}
             loading={loading}
+            onEditTask={handleEditTask}
+            onDeleteTask={handleDeleteTask}
+            onCompleteTask={handleCompleteTask}
+            onRefresh={loadData}
           />
 
           <TaskFilter
@@ -136,18 +187,32 @@ export const HomeScreen = () => {
             onClearFilters={clearFilters}
           />
 
-        </View>
-        <SafeAreaView edges={['bottom']} style={{ backgroundColor: colors.background }}>
-          <NavBar
-            onHome={loadData}
-            onDelete={handleDeleteTask}
-            onAdd={() => navigation.navigate('AddTask')}
-            onEdit={() => navigation.navigate('AddTask', { idTarefa: selectedTaskId })}
-            onSettings={() => navigation.navigate('Config')}
-            canDelete={!!selectedTaskId}
-            canEdit={!!selectedTaskId}
+          <ConfirmModal
+            visible={mostrarModalConfirmacao}
+            onClose={() => {
+              setMostrarModalConfirmacao(false);
+              setTaskIdParaExcluir(null);
+            }}
+            onConfirm={confirmarExclusao}
+            title="Confirmar Exclusão"
+            message="Deseja realmente excluir esta tarefa? Esta ação não pode ser desfeita."
+            confirmText="Excluir"
+            cancelText="Cancelar"
+            type="danger"
           />
-        </SafeAreaView>
+
+          <ConfirmModal
+            visible={mostrarModalSair}
+            onClose={() => setMostrarModalSair(false)}
+            onConfirm={handleSairSistema}
+            title="Sair do Sistema"
+            message="Deseja realmente sair do sistema? Você será deslogado e precisará fazer login novamente."
+            confirmText="Sair"
+            cancelText="Cancelar"
+            type="warning"
+          />
+
+        </View>
       </SafeAreaView>
     </>
   );

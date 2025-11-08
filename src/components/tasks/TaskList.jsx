@@ -3,23 +3,45 @@
  * Lista de tarefas
  */
 
-import React, { memo } from 'react';
-import { FlatList, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { memo, useState } from 'react';
+import { FlatList, View, Text, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import { TaskItem } from './TaskItem';
+import { Skeleton } from '../common/Skeleton';
+import { EmptyState } from '../common/EmptyState';
 import { useTheme } from '../../hooks/useTheme';
+import { useHapticFeedback } from '../../hooks/useHapticFeedback';
 
 const TaskListComponent = ({
   tasks,
   onTaskPress,
   selectedTaskId,
   loading = false,
+  onEditTask,
+  onDeleteTask,
+  onCompleteTask,
+  onRefresh,
 }) => {
   const { colors } = useTheme();
+  const { lightImpact } = useHapticFeedback();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    lightImpact(); // Haptic feedback
+    if (onRefresh) {
+      await onRefresh();
+    }
+    setRefreshing(false);
+  };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.skeletonContainer}>
+        {[1, 2, 3, 4, 5].map((item) => (
+          <View key={item} style={styles.skeletonItem}>
+            <Skeleton width="100%" height={80} borderRadius={12} />
+          </View>
+        ))}
       </View>
     );
   }
@@ -28,20 +50,34 @@ const TaskListComponent = ({
     <View style={styles.container}>
       <FlatList
         data={tasks}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <TaskItem
             task={item}
             onPress={onTaskPress}
             isSelected={item.id === selectedTaskId}
+            onEdit={onEditTask}
+            onDelete={onDeleteTask}
+            onComplete={onCompleteTask}
+            index={index}
           />
         )}
         keyExtractor={(item) => item.id}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          ) : undefined
+        }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={{ color: colors.text }}>
-              Nenhuma tarefa encontrada
-            </Text>
-          </View>
+          <EmptyState
+            icon="task-alt"
+            title="Nenhuma tarefa encontrada"
+            message="Comece criando sua primeira tarefa!"
+          />
         }
         contentContainerStyle={[
           styles.list,
@@ -75,6 +111,14 @@ const styles = StyleSheet.create({
   emptyContainer: {
     padding: 20,
     alignItems: 'center',
+  },
+  skeletonContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  skeletonItem: {
+    marginBottom: 12,
   },
 });
 

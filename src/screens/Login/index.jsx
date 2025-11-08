@@ -5,19 +5,23 @@ import {
   TextInput, 
   TouchableOpacity, 
   Image, 
-  Alert, 
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Switch
+  Switch,
+  BackHandler
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, signInWithEmailAndPassword } from "../../services/firebaseConfig";
 import { useTheme } from '../../hooks/useTheme';
+import { useToast } from '../../context/ToastContext';
+import { useHapticFeedback } from '../../hooks/useHapticFeedback';
+import { AnimatedButton } from '../../components/common/AnimatedButton';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { createStyles, createDynamicStyles } from './styles';
 
 const LoginScreen = () => {
@@ -28,10 +32,13 @@ const LoginScreen = () => {
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [salvarLogin, setSalvarLogin] = useState(false);
+  const [mostrarModalSair, setMostrarModalSair] = useState(false);
   const usernameRef = useRef(null);
   const passwordRef = useRef(null);
   const navigation = useNavigation();
   const { colors, shadows } = useTheme();
+  const { showError, showWarning } = useToast();
+  const { success, error } = useHapticFeedback();
 
   const styles = createStyles(colors, shadows);
   const dynamicStyles = createDynamicStyles(colors, shadows, usernameFocused, passwordFocused);
@@ -55,9 +62,27 @@ const LoginScreen = () => {
     loadSavedUsername();
   }, []);
 
+  // Back Handler - Prevenir navegação sem autenticação
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Mostrar modal de confirmação para sair do app
+        setMostrarModalSair(true);
+        return true; // Previne o comportamento padrão
+      };
+
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => subscription.remove();
+    }, [])
+  );
+
+  const handleSairApp = () => {
+    BackHandler.exitApp();
+  };
+
   const LoginUser = async () => {
     if (!username || !password) {
-      Alert.alert('Aviso', 'Preencha todos os campos!');
+      showWarning('Preencha todos os campos!');
       return;
     }
 
@@ -77,9 +102,11 @@ const LoginScreen = () => {
         await AsyncStorage.removeItem('salvarLogin');
       }
       
-      navigation.navigate('Home', { id: user.uid });
-    } catch (error) {
-      Alert.alert('Erro', error.message || 'Não foi possível fazer login');
+      success(); // Haptic feedback
+      navigation.replace('MainTabs');
+    } catch (err) {
+      error(); // Haptic feedback
+      showError(err.message || 'Não foi possível fazer login');
     } finally {
       setLoading(false);
     }
@@ -197,7 +224,7 @@ const LoginScreen = () => {
             </View>
 
             {/* Login Button */}
-            <TouchableOpacity 
+            <AnimatedButton 
               style={[
                 styles.button,
                 dynamicStyles.button,
@@ -205,7 +232,8 @@ const LoginScreen = () => {
               ]} 
               onPress={LoginUser}
               disabled={loading}
-              activeOpacity={0.8}
+              haptic={true}
+              hapticType="medium"
             >
               {loading ? (
                 <ActivityIndicator color={colors.textInverse} />
@@ -214,7 +242,7 @@ const LoginScreen = () => {
                   Entrar
                 </Text>
               )}
-            </TouchableOpacity>
+            </AnimatedButton>
 
             {/* Sign Up Link */}
             <TouchableOpacity 
@@ -232,6 +260,17 @@ const LoginScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ConfirmModal
+        visible={mostrarModalSair}
+        onClose={() => setMostrarModalSair(false)}
+        onConfirm={handleSairApp}
+        title="Sair do Aplicativo"
+        message="Deseja realmente sair do aplicativo?"
+        confirmText="Sair"
+        cancelText="Cancelar"
+        type="warning"
+      />
     </SafeAreaView>
   );
 };

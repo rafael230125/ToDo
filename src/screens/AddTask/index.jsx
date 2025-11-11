@@ -38,12 +38,10 @@ const AddTaskScreen = () => {
   const { success, error } = useHapticFeedback();
   const styles = createStyles();
   
-  // Verificar se está sendo acessada via tab ou stack
   const isTabNavigator = route.name === 'AddTaskTab';
 
   // Configurar header dinamicamente baseado no tema
   useLayoutEffect(() => {
-    // Só configurar header se não estiver no tab navigator
     if (!isTabNavigator) {
       navigation.setOptions({
         title: 'Voltar',
@@ -75,15 +73,11 @@ const AddTaskScreen = () => {
   const [mostrarModalStatus, setMostrarModalStatus] = useState(false);
   const [mostrarModalConfirmacao, setMostrarModalConfirmacao] = useState(false);
   const [acaoConfirmacao, setAcaoConfirmacao] = useState(null);
-  
-  // Estados de notificação
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [notificationDate, setNotificationDate] = useState(null);
   const [repeatCount, setRepeatCount] = useState(0);
   const [repeatInterval, setRepeatInterval] = useState(0);
   const [scheduledNotificationIds, setScheduledNotificationIds] = useState([]);
-  
-  // Estados de foco para inputs
   const [nomeFocused, setNomeFocused] = useState(false);
   const [descricaoFocused, setDescricaoFocused] = useState(false);
 
@@ -103,7 +97,6 @@ const AddTaskScreen = () => {
             setTextoDataFinal(tarefa.dataFinal || dataFinal.toLocaleDateString('pt-BR'));
             setModoEdicao(true);
             
-            // Carregar configurações de notificação se existirem
             if (tarefa.notificationEnabled) {
               setNotificationEnabled(true);
               if (tarefa.notificationDate) {
@@ -115,8 +108,7 @@ const AddTaskScreen = () => {
               if (tarefa.repeatInterval !== undefined) {
                 setRepeatInterval(tarefa.repeatInterval);
               }
-              
-              // Buscar notificações agendadas existentes
+            
               const existingNotifications = await getTaskNotifications(idTarefa);
               if (existingNotifications.length > 0) {
                 setScheduledNotificationIds(existingNotifications.map(n => n.identifier));
@@ -164,7 +156,6 @@ const AddTaskScreen = () => {
     try {
       setLoading(true);
       
-      // Se notificação estiver habilitada mas não houver data, desabilitar automaticamente
       const finalNotificationEnabled = notificationEnabled && notificationDate ? true : false;
       
       const taskData = {
@@ -182,7 +173,6 @@ const AddTaskScreen = () => {
 
       const taskId = await createTask(taskData);
       
-      // Agendar notificações apenas se habilitadas E com data definida
       if (finalNotificationEnabled && notificationDate) {
         const notificationIds = await scheduleTaskNotification({
           taskId,
@@ -220,13 +210,11 @@ const AddTaskScreen = () => {
 
     try {
       setLoading(true);
-      
-      // Cancelar notificações antigas
+    
       if (scheduledNotificationIds.length > 0) {
         await cancelTaskNotifications(scheduledNotificationIds);
       }
       
-      // Se notificação estiver habilitada mas não houver data, desabilitar automaticamente
       const finalNotificationEnabled = notificationEnabled && notificationDate ? true : false;
       
       const taskData = {
@@ -243,8 +231,7 @@ const AddTaskScreen = () => {
       };
 
       await updateTask(idTarefa, taskData);
-      
-      // Agendar novas notificações apenas se habilitadas E com data definida
+    
       if (finalNotificationEnabled && notificationDate) {
         const notificationIds = await scheduleTaskNotification({
           taskId: idTarefa,
@@ -303,12 +290,10 @@ const AddTaskScreen = () => {
             styles.formContainer,
             isTabNavigator && { paddingTop: spacing.xl }
           ]}>
-            {/* Título */}
             <Text style={[styles.title, { color: colors.text }]}>
               {modoEdicao ? 'Editar Tarefa' : 'Nova Tarefa'}
             </Text>
 
-            {/* Nome da Tarefa */}
             <View style={styles.inputWrapper}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
                 Nome da Tarefa *
@@ -332,8 +317,6 @@ const AddTaskScreen = () => {
                 onBlur={() => setNomeFocused(false)}
               />
             </View>
-
-            {/* Descrição */}
             <View style={styles.inputWrapper}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
                 Descrição
@@ -361,8 +344,7 @@ const AddTaskScreen = () => {
                 onBlur={() => setDescricaoFocused(false)}
               />
             </View>
-
-            {/* Prioridade */}
+            
             <View style={styles.inputWrapper}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
                 Prioridade
@@ -391,8 +373,7 @@ const AddTaskScreen = () => {
                 </Text>
               </View>
             </View>
-
-            {/* Status */}
+            
             <View style={styles.inputWrapper}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
                 Status
@@ -415,8 +396,7 @@ const AddTaskScreen = () => {
                 <MaterialIcons name="arrow-drop-down" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-
-            {/* Data de Início */}
+            
             <View style={styles.inputWrapper}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
                 Data de Início
@@ -440,7 +420,6 @@ const AddTaskScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Data Final */}
             <View style={styles.inputWrapper}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
                 Data Final
@@ -464,7 +443,6 @@ const AddTaskScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Date Pickers */}
             {mostrarDataInicio && (
               <DateTimePicker
                 value={dataInicio}
@@ -482,7 +460,6 @@ const AddTaskScreen = () => {
               />
             )}
 
-            {/* Modal Prioridade */}
             <Modal
               visible={mostrarModalPrioridade}
               transparent={true}
@@ -535,7 +512,6 @@ const AddTaskScreen = () => {
               </View>
             </Modal>
 
-            {/* Modal Status */}
             <Modal
               visible={mostrarModalStatus}
               transparent={true}
@@ -584,8 +560,7 @@ const AddTaskScreen = () => {
                 </View>
               </View>
             </Modal>
-
-            {/* Configuração de Notificações */}
+            
             <NotificationConfig
               enabled={notificationEnabled}
               onEnabledChange={setNotificationEnabled}
@@ -597,7 +572,6 @@ const AddTaskScreen = () => {
               onRepeatIntervalChange={setRepeatInterval}
             />
 
-            {/* Botão Salvar */}
             <AnimatedButton
               style={[
                 styles.saveButton,

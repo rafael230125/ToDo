@@ -25,9 +25,6 @@ export class UserRepository extends BaseRepository {
     return `usuarios/${userId}`;
   }
 
-  /**
-   * Busca dados do usuário atual
-   */
   async findCurrent() {
     const userId = auth.currentUser?.uid;
     if (!userId) return null;
@@ -45,9 +42,6 @@ export class UserRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Cria ou atualiza dados do usuário
-   */
   async saveOrUpdate(data) {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error('Usuário não autenticado');
@@ -65,9 +59,6 @@ export class UserRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Atualiza apenas um campo específico
-   */
   async updateField(field, value) {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error('Usuário não autenticado');

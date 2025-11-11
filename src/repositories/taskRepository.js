@@ -11,9 +11,6 @@ export class TaskRepository extends BaseRepository {
     super('tarefas');
   }
 
-  /**
-   * Busca tarefas com filtros e ordenação
-   */
   async findWithFilters(filters = {}) {
     const allTasks = await this.findAll();
     
@@ -51,9 +48,6 @@ export class TaskRepository extends BaseRepository {
     return filteredTasks;
   }
 
-  /**
-   * Busca tarefas por texto (nome ou descrição)
-   */
   async search(searchText) {
     const allTasks = await this.findAll();
     const search = searchText.toLowerCase();

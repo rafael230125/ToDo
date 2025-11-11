@@ -2,7 +2,7 @@
 
 Registro de todas as mudanças, melhorias e correções do projeto.
 
-## [2.0.0] - 2025-01 - Refatoração Completa
+## [2.0.0] - 2025-11-08 Refatoração Completa
 
 ### 🎉 Mudanças Principais
 
@@ -21,35 +21,44 @@ Registro de todas as mudanças, melhorias e correções do projeto.
 #### 🏗️ Nova Arquitetura
 
 **Camadas Criadas:**
-1. **Services** (4 arquivos)
+1. **Services** (5 arquivos)
    - `authService.js` - Autenticação
    - `taskService.js` - Operações de tarefas
    - `userService.js` - Operações de usuário
    - `configService.js` - Configurações
+   - `notificationService.js` - Notificações push
 
 2. **Repositories** (3 arquivos)
    - `baseRepository.js` - Classe base
    - `taskRepository.js` - Repository de tarefas
    - `userRepository.js` - Repository de usuários
 
-3. **Hooks Customizados** (6 arquivos)
+3. **Hooks Customizados** (7 arquivos)
    - `useAuth.js` - Hook de autenticação
-   - `useTasks.js` - Hook de tarefas (157 linhas)
+   - `useTasks.js` - Hook de tarefas
    - `useFilter.js` - Hook de filtros
    - `useTheme.js` - Hook de tema
+   - `useHapticFeedback.js` - Hook de feedback tátil
    - `useHomeData.js` - Lógica de dados do Home
    - `useHomeFilters.js` - Lógica de filtros do Home
 
-4. **Componentes** (10 arquivos)
-   - `Button.jsx`, `Input.jsx`, `Card.jsx`, `Modal.jsx`
-   - `TaskItem.jsx`, `TaskList.jsx`, `TaskFilter.jsx`
-   - `Header.jsx`, `SearchBar.jsx`, `NavBar.jsx`
+4. **Componentes** (17 arquivos)
+   - **Common (9)**: `Button.jsx`, `AnimatedButton.jsx`, `Input.jsx`, `Card.jsx`, `Modal.jsx`, `ConfirmModal.jsx`, `EmptyState.jsx`, `Skeleton.jsx`, `Toast.jsx`
+   - **Tasks (4)**: `TaskItem.jsx`, `TaskList.jsx`, `TaskFilter.jsx`, `NotificationConfig.jsx`
+   - **Layout (3)**: `Header.jsx`, `SearchBar.jsx`, `NavBar.jsx`
+   - **Animations (2)**: `FadeInView.jsx`, `SlideInView.jsx`
 
-5. **Sistema de Temas** (4 arquivos)
+5. **Sistema de Temas** (5 arquivos)
    - `colors.js` - Paletas de cores (light/dark)
    - `typography.js` - Fontes e tamanhos
    - `spacing.js` - Espaçamentos
+   - `shadows.js` - Sombras e elevações
    - `index.js` - Tema unificado
+
+6. **Contextos** (3 arquivos)
+   - `ThemeContext.js` - Contexto de tema
+   - `FontContext.js` - Contexto de fonte
+   - `ToastContext.jsx` - Contexto de notificações toast
 
 #### ⚡ Melhorias de Performance
 
@@ -80,8 +89,8 @@ Registro de todas as mudanças, melhorias e correções do projeto.
 | Métrica | Antes | Depois | Melhoria |
 |---------|-------|--------|----------|
 | Linhas no maior arquivo | 538 | 140 | -74% |
-| Componentes reutilizáveis | 0 | 21 | +∞ |
-| Arquivos totais | 20 | 48 | +140% |
+| Componentes reutilizáveis | 0 | 17 | +∞ |
+| Arquivos totais | 20 | 55+ | +175% |
 | De-duplicação código | 0% | 85% | +85% |
 | Tempo inicialização | 3-5s | 1-2s | -60% |
 | Bundle inicial | ~8MB | ~5MB | -37% |
@@ -187,8 +196,12 @@ Registro de todas as mudanças, melhorias e correções do projeto.
 - ✅ Lógica extraída em hooks
 - ✅ Redução de 74% no arquivo principal
 
-### Fase 5: Testes (⏳ 0%)
-- ⏳ Ainda não implementado
+### Fase 5: Testes (✅ 30%)
+- ✅ Jest configurado
+- ✅ Testes de componentes (7 arquivos)
+- ✅ Testes de hooks (2 arquivos)
+- ✅ Testes de serviços (1 arquivo)
+- ⏳ Cobertura ainda abaixo de 70%
 
 ### Fase 6: Otimização (✅ 100%)
 - ✅ React.memo implementado
@@ -256,7 +269,7 @@ usuarios/
 
 ## 🎯 Roadmap
 
-### ✅ Concluído (83%)
+### ✅ Concluído (90%)
 - Limpeza de dependências
 - Atualização SDK 54
 - Migração Firebase
@@ -264,11 +277,11 @@ usuarios/
 - Refatoração
 - Otimização
 - Segurança
+- Testes básicos implementados
 
-### ⏳ Pendente (17%)
-- Testes automatizados (Jest)
-- Linting (ESLint)
+### ⏳ Pendente (10%)
 - Cobertura de testes (>70%)
+- Linting (ESLint)
 - CI/CD
 
 ---

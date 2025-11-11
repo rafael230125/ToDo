@@ -1,8 +1,3 @@
-/**
- * ToastContext
- * Context para gerenciar Toast globalmente na aplicação
- */
-
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import Toast from '../components/common/Toast';
 
@@ -37,7 +32,6 @@ export const ToastProvider = ({ children }) => {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  // Métodos de conveniência
   const showSuccess = useCallback((message, duration) => {
     showToast(message, 'success', duration);
   }, [showToast]);

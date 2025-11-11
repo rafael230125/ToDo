@@ -1,8 +1,3 @@
-/**
- * Hook de Haptic Feedback
- * Fornece feedback tátil (vibração) para melhorar a experiência do usuário
- */
-
 import * as Haptics from 'expo-haptics';
 
 export const useHapticFeedback = () => {

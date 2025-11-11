@@ -1,8 +1,3 @@
-/**
- * HomeScreen Refatorada
- * Usa componentes e hooks criados nas Fases 3 e 4
- */
-
 import React, { useState, useEffect } from 'react';
 import { View, BackHandler, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,10 +24,8 @@ export const HomeScreen = () => {
   const { mediumImpact } = useHapticFeedback();
   const styles = createStyles(colors);
 
-  // Verificação de autenticação - redireciona para Login se não autenticado
   useEffect(() => {
     if (!auth.currentUser) {
-      // Navegar para Login no Stack Navigator
       navigation.getParent()?.navigate('Login');
     }
   }, [navigation]);
@@ -42,7 +35,6 @@ export const HomeScreen = () => {
   const [taskIdParaExcluir, setTaskIdParaExcluir] = useState(null);
   const [mostrarModalSair, setMostrarModalSair] = useState(false);
 
-  // Hooks de dados e filtros
   const { tasks, userName, loading, loadData, setTasks } = useHomeData();
   const {
     searchQuery,
@@ -53,12 +45,11 @@ export const HomeScreen = () => {
     clearFilters,
   } = useHomeFilters(tasks, setTasks, loadData);
 
-  // Back Handler - Mostrar modal de confirmação ao pressionar voltar
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
         setMostrarModalSair(true);
-        return true; // Previne o comportamento padrão
+        return true;
       };
 
       const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
@@ -66,10 +57,8 @@ export const HomeScreen = () => {
     }, [])
   );
 
-  // Handlers
   const handleSearch = (text) => {
     setSearchQuery(text);
-    // filteredTasks será recalculado automaticamente pelo useMemo
   };
 
   const handleTaskSelect = (taskId) => {
@@ -86,9 +75,8 @@ export const HomeScreen = () => {
     if (!taskIdParaExcluir) return;
 
     try {
-      mediumImpact(); // Haptic feedback
+      mediumImpact();
       await deleteTask(taskIdParaExcluir);
-      // Atualizar lista de tasks - filteredTasks será recalculado automaticamente pelo useMemo
       const updatedTasks = tasks.filter(t => t.id !== taskIdParaExcluir);
       setTasks(updatedTasks);
       setSelectedTaskId(null);
@@ -102,7 +90,6 @@ export const HomeScreen = () => {
 
   const handleEditTask = (taskId) => {
     if (!taskId) return;
-    // Navegar para AddTask no Stack Navigator com o id da tarefa para edição
     navigation.getParent()?.navigate('AddTask', { idTarefa: taskId });
   };
 
@@ -115,8 +102,6 @@ export const HomeScreen = () => {
 
       const newStatus = task.status === 'Concluida' ? 'Pendente' : 'Concluida';
       await updateTask(taskId, { status: newStatus });
-      
-      // Atualizar lista de tasks
       const updatedTasks = tasks.map(t => 
         t.id === taskId ? { ...t, status: newStatus } : t
       );
@@ -134,13 +119,11 @@ export const HomeScreen = () => {
 
   const handleFilterChange = (option) => {
     setFilterOption(option);
-    // filteredTasks será recalculado automaticamente pelo useMemo
   };
 
   const handleSairSistema = async () => {
     try {
       await logout();
-      // Navegar para Login após logout
       navigation.getParent()?.navigate('Login');
       showSuccess('Sessão encerrada com sucesso!');
     } catch (error) {
@@ -218,6 +201,5 @@ export const HomeScreen = () => {
   );
 };
 
-// Manter export padrão para compatibilidade
 export default HomeScreen;
 

@@ -1,8 +1,3 @@
-/**
- * Serviço de Tarefas
- * Gerencia operações CRUD de tarefas
- */
-
 import { auth, db } from './firebaseConfig';
 import { 
   collection, 
@@ -18,17 +13,12 @@ import {
 
 const SUBCOLLECTION = 'tarefas';
 
-/**
- * Busca todas as tarefas do usuário atual
- */
 export async function getAllTasks(filters = {}) {
   const user = auth.currentUser;
   if (!user) return [];
 
   try {
     const tasksRef = collection(db, 'usuarios', user.uid, SUBCOLLECTION);
-    
-    // Buscar todas as tarefas SEM filtros no Firebase
     const querySnapshot = await getDocs(query(tasksRef));
     const tasks = [];
     
@@ -37,38 +27,30 @@ export async function getAllTasks(filters = {}) {
       tasks.push({ 
         id: docSnapshot.id, 
         ...data,
-        // Converter Timestamps para formato legível
         createdAt: data.createdAt?.toDate?.() || data.createdAt,
         updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
       });
     });
 
-    // Aplicar filtros e ordenação no cliente
     return applyFiltersAndSort(tasks, filters);
   } catch (error) {
     throw error;
   }
 }
 
-/**
- * Aplica filtros e ordenação nas tarefas
- */
 function applyFiltersAndSort(tasks, filters) {
   let filteredTasks = [...tasks];
   
-  // Ordenar por data de criação por padrão (mais recentes primeiro)
   filteredTasks.sort((a, b) => {
     const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
     const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
     return dateB - dateA;
   });
 
-  // Filtro por status
   if (filters.status) {
     filteredTasks = filteredTasks.filter(task => task.status === filters.status);
   }
 
-  // Ordenação adicional
   if (filters.orderBy === 'dataFinal') {
     filteredTasks = filteredTasks.sort((a, b) => {
       const dateA = new Date(a.dataFinal);
@@ -85,9 +67,6 @@ function applyFiltersAndSort(tasks, filters) {
   return filteredTasks;
 }
 
-/**
- * Busca uma tarefa específica
- */
 export async function getTaskById(taskId) {
   const user = auth.currentUser;
   if (!user) return null;
@@ -105,9 +84,6 @@ export async function getTaskById(taskId) {
   }
 }
 
-/**
- * Cria uma nova tarefa
- */
 export async function createTask(taskData) {
   const user = auth.currentUser;
   if (!user) throw new Error('Usuário não autenticado');
@@ -126,9 +102,6 @@ export async function createTask(taskData) {
   }
 }
 
-/**
- * Atualiza uma tarefa
- */
 export async function updateTask(taskId, taskData) {
   const user = auth.currentUser;
   if (!user) throw new Error('Usuário não autenticado');
@@ -144,9 +117,6 @@ export async function updateTask(taskId, taskData) {
   }
 }
 
-/**
- * Deleta uma tarefa
- */
 export async function deleteTask(taskId) {
   const user = auth.currentUser;
   if (!user) throw new Error('Usuário não autenticado');
@@ -159,9 +129,6 @@ export async function deleteTask(taskId) {
   }
 }
 
-/**
- * Busca tarefas com filtro de texto
- */
 export async function searchTasks(searchText) {
   const user = auth.currentUser;
   if (!user) return [];

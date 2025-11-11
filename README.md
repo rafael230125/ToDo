@@ -252,35 +252,53 @@ src/
 ```
 src/
 ├── components/          # Componentes reutilizáveis
-│   ├── common/         # Button, Input, Card, Modal
-│   ├── tasks/          # TaskItem, TaskList, TaskFilter
-│   └── layout/         # Header, SearchBar, NavBar
+│   ├── common/         # Button, AnimatedButton, Input, Card, Modal, 
+│   │                   # ConfirmModal, EmptyState, Skeleton, Toast
+│   ├── tasks/          # TaskItem, TaskList, TaskFilter, NotificationConfig
+│   ├── layout/         # Header, SearchBar, NavBar
+│   └── animations/     # FadeInView, SlideInView
 ├── screens/             # Telas do app
 │   ├── Home/           # HomeScreen com hooks
 │   │   └── hooks/      # useHomeData, useHomeFilters
 │   ├── Login/          # Tela de login
 │   ├── NewUser/        # Tela de cadastro
 │   ├── AddTask/        # Criar/Editar tarefa
-│   └── Config/         # Configurações
+│   ├── Config/         # Configurações
+│   └── Galeria/        # Galeria de imagens
 ├── services/            # Serviços Firebase
 │   ├── authService.js
 │   ├── taskService.js
 │   ├── userService.js
 │   ├── configService.js
-│   └── firebaseConfig.js
+│   ├── notificationService.js
+│   ├── firebaseConfig.js
+│   └── firebaseService.js
+├── repositories/        # Repository Pattern
+│   ├── baseRepository.js
+│   ├── taskRepository.js
+│   └── userRepository.js
 ├── hooks/               # Hooks customizados
 │   ├── useAuth.js
 │   ├── useTasks.js
 │   ├── useFilter.js
-│   └── useTheme.js
+│   ├── useTheme.js
+│   └── useHapticFeedback.js
 ├── theme/               # Sistema de temas
 │   ├── colors.js
 │   ├── typography.js
 │   ├── spacing.js
-│   └── shadows.js
-└── context/             # Contextos (Theme, Font)
-    ├── ThemeContext.js
-    └── FontContext.js
+│   ├── shadows.js
+│   └── index.js
+├── context/             # Contextos React
+│   ├── ThemeContext.js
+│   ├── FontContext.js
+│   └── ToastContext.jsx
+├── navigation/          # Navegação
+│   └── TabNavigator.jsx
+└── __tests__/           # Testes automatizados
+    ├── components/
+    ├── hooks/
+    └── services/
 ```
 
 ## 🐛 Solução de Problemas

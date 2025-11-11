@@ -1,8 +1,3 @@
-/**
- * Button Component
- * Botão reutilizável com suporte ao novo Design System
- */
-
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';

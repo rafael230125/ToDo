@@ -3,9 +3,6 @@ import * as SQLite from 'expo-sqlite';
 const DATABASE_NAME = 'todo';
 let _db = null;
 
-
-
-// SQL para criar a tabela e inserir uma entrada inicial
 const SQL_CREATE_tarefas = `
 CREATE TABLE IF NOT EXISTS tarefas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,8 +50,6 @@ export default function openDB() {
     _db.execAsync(SQL_CREATE_tarefas);
     _db.execAsync(SQL_CREATE_usuarios);
     _db.execAsync(SQL_CREATE_config);
-    // _db.execAsync('DROP TABLE IF EXISTS config');
-    // _db.execAsync(SQL_DELETE_Tables);
   }
   return _db;
 }

@@ -23,9 +23,6 @@ export class BaseRepository {
     this.collectionName = collectionName;
   }
 
-  /**
-   * Retorna o caminho da coleção completo
-   */
   getCollectionPath() {
     const userId = auth.currentUser?.uid;
     if (!userId) {
@@ -39,9 +36,6 @@ export class BaseRepository {
     return `usuarios/${userId}/${this.collectionName}`;
   }
 
-  /**
-   * Busca um documento específico
-   */
   async findById(documentId) {
     try {
       const docRef = doc(db, this.getCollectionPath(), documentId);
@@ -56,9 +50,6 @@ export class BaseRepository {
     }
   }
 
-  /**
-   * Busca todos os documentos
-   */
   async findAll(filters = {}) {
     try {
       const collectionRef = collection(db, this.getCollectionPath());
@@ -78,9 +69,6 @@ export class BaseRepository {
     }
   }
 
-  /**
-   * Cria um novo documento
-   */
   async create(data) {
     try {
       const collectionRef = collection(db, this.getCollectionPath());
@@ -96,9 +84,6 @@ export class BaseRepository {
     }
   }
 
-  /**
-   * Atualiza um documento
-   */
   async update(documentId, data) {
     try {
       const docRef = doc(db, this.getCollectionPath(), documentId);
@@ -111,9 +96,6 @@ export class BaseRepository {
     }
   }
 
-  /**
-   * Deleta um documento
-   */
   async delete(documentId) {
     try {
       const docRef = doc(db, this.getCollectionPath(), documentId);
@@ -123,16 +105,10 @@ export class BaseRepository {
     }
   }
 
-  /**
-   * Verifica se usuário está autenticado
-   */
   isAuthenticated() {
     return !!auth.currentUser;
   }
 
-  /**
-   * Retorna o ID do usuário atual
-   */
   getCurrentUserId() {
     return auth.currentUser?.uid || null;
   }

@@ -19,19 +19,16 @@ export class TaskRepository extends BaseRepository {
     
     let filteredTasks = [...allTasks];
     
-    // Ordenar por data de criação por padrão
     filteredTasks.sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
       const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
       return dateB - dateA;
     });
 
-    // Filtro por status
     if (filters.status) {
       filteredTasks = filteredTasks.filter(task => task.status === filters.status);
     }
 
-    // Ordenação adicional
     if (filters.orderBy === 'dataFinal') {
       filteredTasks = filteredTasks.sort((a, b) => {
         try {
@@ -67,9 +64,6 @@ export class TaskRepository extends BaseRepository {
     );
   }
 
-  /**
-   * Converte string de data para objeto Date
-   */
   converterParaDate(dataString) {
     const [dia, mes, ano] = dataString.split('/').map(Number);
     return new Date(ano, mes - 1, dia);
